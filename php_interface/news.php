@@ -5,22 +5,6 @@
 
     require('./IcculusNews.php');
 
-    $allowed_globals = array('id');
-    // register values as "safe" globals...i.e. - we don't care WHERE they are
-    //  set, even if a hacker changes them with GETs or POSTs...
-    function safe_globals()
-    {
-        global $allowed_globals;
-        foreach ($allowed_globals as $name)
-        {
-            if (isset($_REQUEST[$name]))
-            {
-                global $$name;
-                $$name = $_REQUEST[$name];
-            }
-        }
-    }
-
 // !!! FIXME: Move this somewhere.
     function output_site_header()
     {
@@ -187,14 +171,14 @@ function output_item($news_queue, $id, $host = 'localhost', $profile = false)
 
   <body>
     <?php 
-      safe_globals();
       output_site_header();
     ?>
 
     <p><b>News archive:</b> <font size="-3"><a href="/news/queue.php?action=post">(submit news)</a></font><br>
     <ul>
       <?php
-        if ( (isset($id)) and ($id != 0) )
+        $id = $_REQUEST['id'];
+        if (!empty($id))
             output_item($news_queue, $id, 'localhost', false);
         else
             output_archive($news_queue, 'localhost', false);
