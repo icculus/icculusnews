@@ -261,6 +261,13 @@ function output_news_queue_widgets($showall = 0)
 //   $ownerid   = $qinfo['ownerid'];     // owner's ID number.
 //   $ownername  = $qinfo['owner'];      // string of owner's name.
 
+    echo <<< EOF
+
+      <form method="post" action="$PHP_SELF?action=view">
+        <input type="hidden" name="showall" value="$showall">
+
+EOF;
+
     if (!isset($err))
         $err = news_enum_queues($sock, $queues);
 
@@ -277,9 +284,6 @@ function output_news_queue_widgets($showall = 0)
 
         else if (count($queues) > 1)
         {
-            $queuelist  = '<form method="post"';
-            $queuelist .= "action=\"$PHP_SELF?action=view&showall=$showall\">";
-            $queuelist .= "\n";
             $queuelist .= 'Queue: <select name="form_qid" size="1">';
             $queuelist .= "\n";
 
@@ -292,7 +296,9 @@ function output_news_queue_widgets($showall = 0)
 
             $queuelist .= "</select>\n";
             $queuelist .= '<input type="submit" name="form_chqid" value="Change">';
-            $queuelist .= "\n</form>\n";
+            $queuelist .= "\n";
+            $queuelist .= '<input type="submit" name="form_moveqid" value="Move Selected To">';
+            $queuelist .= "\n";
         } // else if
     } // if
 
@@ -314,7 +320,6 @@ echo <<< EOF
         </tr>
       <table>
 
-      <form method="post" action="$PHP_SELF?action=view&showall=$showall">
       <table border="1" width="100%">
         <tr>
 
@@ -410,7 +415,8 @@ EOF;
 function handle_news_queue_commands()
 {
     global $itemid, $form_delete, $form_undelete, $form_purge, $form_purgeall;
-    global $form_approve, $form_unapprove, $form_chqid, $form_qid;
+    global $form_approve, $form_unapprove;
+    global $form_qid, $form_chqid, $form_moveqid;
     global $iccnews_userqueue;
 
     // create some local variables.
@@ -422,6 +428,21 @@ function handle_news_queue_commands()
         if (is_logged_in($u, $p, $q))
             $iccnews_userqueue = $form_qid;
     } // if
+
+    else if ( ($form_moveqid) and (isset($form_qid)) )
+    {
+        $err = get_connected($sock);
+
+        foreach ($itemid as $id)
+        {
+            if ( (!isset($sock)) ||
+                 ($err = news_moveitem($sock, $id, $form_qid)) )
+            {
+                echo "<font color=\"#FF0000\">failed to move item $id.";
+                echo " $err</font><br>\n";
+            } // if
+        } // foreach
+    } // else if
 
     else if ($form_delete)
     {
