@@ -513,6 +513,11 @@ function output_login_widgets($next_action = 'view')
 
     <script language="javascript">
     <!--
+        function loginfocus()
+        {
+            document.loginform.form_user.focus();
+        } // loginfocus
+
         function trim(inputString)
         {
             var retValue = inputString;
@@ -1069,6 +1074,12 @@ function do_unknown()
 } // do_unknown
 
 
+function body_attributes($action)
+{
+    if ($action == 'login')
+        print('onLoad="loginfocus();"');
+} // body_attributes
+
 // mainline/setup.
 
 
@@ -1104,7 +1115,7 @@ else if (!isset($actions[$action]))
     <title>IcculusNews</title>
   </head>
 
-  <body>
+  <body <?php body_attributes($action); ?> >
     <?php output_site_header(); ?>
     <?php $actions[$action]();  ?>
     <?php output_site_footer(); ?>
