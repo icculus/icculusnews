@@ -738,12 +738,36 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
         printf("\n<hr>\n\n");
     } // if
 
+    $editor = '';
+    if (isset($_REQUEST['fckeditor']))
+    {
+        $t = addslashes($item[text]);
+	$t = str_replace("\r", '\r', $t); 
+	$t = str_replace("\n", '\n', $t); 
+	$t = str_replace("&lt;", '<', $t); 
+	$t = str_replace("&gt;", '>', $t); 
+	$t = str_replace("&amp;", '&', $t); 
+        $editor = "<script type='text/javascript'>\n" .
+                  "<!--\n" .
+                  "var oFCKeditor = new FCKeditor('form_text');\n" .
+                  "oFCKeditor.BasePath = 'FCKeditor/';\n" .
+                  "oFCKeditor.Value = \"$t\";\n" .
+                  "oFCKeditor.Create();\n" .
+                  "//-->\n" .
+                  "</script>\n" .
+                  "<input type='hidden' name='fckeditor' value='1'>\n";
+    }
+    else
+    { 
+        $editor = "<textarea rows='10' name='form_text' cols='80'>{$item['text']}</textarea>";
+    }
+
     echo <<< EOF
 
     <form method="post" action="${_SERVER['PHP_SELF']}?action=post$idarg">
       <input type="hidden" name="form_fromuser" value="{$item['author']}">
       <input type="hidden" name="form_postdate" value="{$item['postdate']}">
-      <table>
+      <table width="100%">
         <tr>
           <td align="left">Posted by:</td>
           <td align="left">
@@ -766,7 +790,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
         <tr>
           <td>News text:</td>
           <td>
-            <textarea rows="10" name="form_text" cols="60">{$item['text']}</textarea>
+             $editor
           </td>
         </tr>
 
@@ -1476,12 +1500,16 @@ else if (!isset($actions[$action]))
     $action = 'unknown';
 } // else if
 
+$jsheaders = '';
+if (isset($_REQUEST['fckeditor']))
+    $jsheaders .= '<script type="text/javascript" src="FCKeditor/fckeditor.js"></script>';
+
 ?>
 
 
 <html>
   <head>
-    <title>IcculusNews</title>
+    <title>IcculusNews</title><?php echo "$jsheaders" ?>
   </head>
 
   <body <?php body_attributes($action); ?> >
