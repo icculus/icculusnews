@@ -1143,7 +1143,6 @@ $commands{'EDIT'} = sub {
     return(1);
 };
 
-
 $commands{'APPROVE'} = sub {
     my $id = shift;
     return(toggle_approve($id, 1));
@@ -1457,6 +1456,8 @@ $commands{'SETDEFAULTQUEUE'} = sub {
             return(1);
         }
     }
+
+    # !!! FIXME: Make sure user can select this queue before changing default!
 
     my $sql = "update $dbtable_users set defaultqueue=$qid where id=$auth_uid";
     if (not defined $link->do($sql)) {
