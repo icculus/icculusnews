@@ -93,7 +93,7 @@ if ($user eq '-') {
 1 while ($text =~ s/\015\012/\012/s);
 1 while ($text =~ s/\015/\012/s);
 $text =~ s/^\.\012/..\012/sm;
-1 while ($text =~ s/\012.\012/\012..\012/s);
+1 while ($text =~ s/\012\.\012/\012..\012/s);
 
 print "Connecting to news server..." if $debug;
 my $sock = IO::Socket::INET->new(PeerAddr => $host,
