@@ -40,24 +40,23 @@ inline Uint16 INEWS_getQID() {
 }
 
 QueueInfo *INEWS_getQueueInfo(int qid) {
-	/*GList *iter = qinfoptr;*/
 	IList *iter = qinfoptr;
 				
 	do {
 		if (((QueueInfo *)(iter->data))->qid == qid) 
 			return ((QueueInfo *)(iter->data));
-	} while ((iter = /*g_list_next(iter)*/ ilist_next(iter)));
+	} while ((iter = ilist_next(iter)));
 
 	return NULL;
 }
 
 QueueInfo **INEWS_getAllQueuesInfo() {
 	QueueInfo **retval;
-	/*GList*/ IList *iter = qinfoptr;
+	IList *iter = qinfoptr;
 
-	retval = (QueueInfo **)malloc(/*g_list_length*/ilist_length(qinfoptr) * sizeof(QueueInfo *));
+	retval = (QueueInfo **)malloc(ilist_length(qinfoptr) * sizeof(QueueInfo *));
 	
-	for (Uint32 i = 0; i < /*g_list_length*/ilist_length(qinfoptr); i++, iter = /*g_list_next*/ilist_next(iter)) {
+	for (Uint32 i = 0; i < ilist_length(qinfoptr); i++, iter = /*g_list_next*/ilist_next(iter)) {
 		QueueInfo *temp;
 		
 		temp = (QueueInfo *)malloc(sizeof(QueueInfo));
@@ -100,7 +99,7 @@ inline Sint8 INEWS_getLastError() {
 	return __inews_errno;
 }
 
-void __free_queue_info_list_element(/*GList *ptr*/ IList *ptr) {
+void __free_queue_info_list_element(IList *ptr) {
   free(((QueueInfo *)(ptr->data))->name);
   free(((QueueInfo *)(ptr->data))->description);
   free(((QueueInfo *)(ptr->data))->digest);
@@ -111,8 +110,24 @@ void __free_queue_info_list_element(/*GList *ptr*/ IList *ptr) {
   free(ptr->data);
 }
 
-char *__chop(char *str) {
+/*char *__chop(char *str) {
 	return g_strstrip(str);
+}*/
+
+char *__chop(char *str) {
+	char *temp = str;
+				
+	do { if (!isspace(*temp)) break; } while (temp++);
+
+	memmove(str, temp, strlen(temp)+1);
+
+	temp = str + strlen(str);
+
+	while (--temp) { if (!isspace(*temp)) break; }
+
+	*(temp + 1) = '\0';
+
+	return str;
 }
 
 void __print_protocol_fuckery_message() {

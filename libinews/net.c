@@ -10,10 +10,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <ctype.h>
 
 /* don't like gotos? deal. I don't like duplicating code. */
 #define FUNC_END(__success, __failure) { 																			\
@@ -35,7 +33,7 @@ Sint8 INEWS_connect(const char *hostname, Uint32 port) {
 	
 	pthread_mutex_lock(&net_mutex);
 	
-	serverstate.hostname = g_strdup(hostname);
+	serverstate.hostname = strdup(hostname);
 	serverstate.port = port;
 	
 	hostents = gethostbyname(hostname);
@@ -95,7 +93,7 @@ Sint8 INEWS_connect(const char *hostname, Uint32 port) {
 			char *offset;
 			
 			if ((offset = strstr((char *)welcome_msg, "daemon")) != NULL)
-				serverstate.verstring = g_strdup(offset + 7);
+				serverstate.verstring = strdup(offset + 7);
 		} else {
 			goto end_failure;
 		}
@@ -136,8 +134,8 @@ Sint8 INEWS_auth(const char *username, const char *password) {
 
 	switch(respstring[0]) {
 		case '+':
-			serverstate.username = username ? g_strdup(username) : g_strdup("anonymous");
-			serverstate.password = password ? g_strdup(password) : NULL;
+			serverstate.username = username ? strdup(username) : strdup("anonymous");
+			serverstate.password = password ? strdup(password) : NULL;
 			serverstate.uid = atoi(respstring + 2);
 			serverstate.qid = atoi(strchr(respstring, ',') + 1);
 			keep_nopping = 1;
@@ -177,7 +175,6 @@ Sint8 INEWS_auth(const char *username, const char *password) {
 Sint8 INEWS_retrQueueInfo() {
 	QueueInfo *temp_ptr;
 	char temp_data[256];
-	/*GList *temp_iter;*/
 	IList *temp_iter;
 	Uint8 record_pos = 0;
 
@@ -206,8 +203,7 @@ Sint8 INEWS_retrQueueInfo() {
 			temp_ptr->qid = atoi(temp_data);
 			record_pos = 1;
 		} else {
-			temp_ptr->name = g_strdup(temp_data);
-			/*qinfoptr = g_list_append(qinfoptr, temp_ptr);*/
+			temp_ptr->name = strdup(temp_data);
 			qinfoptr = ilist_append_data(qinfoptr, temp_ptr);
 			record_pos = 0;
 		}
@@ -237,22 +233,21 @@ Sint8 INEWS_retrQueueInfo() {
 			}
 			
 			switch (++record_pos) {
-				case 2: temp_qinfo->description = g_strdup(temp_data);
+				case 2: temp_qinfo->description = strdup(temp_data);
 								break;
-				case 3: temp_qinfo->digest = g_strdup(temp_data); 
+				case 3: temp_qinfo->digest = strdup(temp_data); 
 								break;
-				case 4: temp_qinfo->singleitem = g_strdup(temp_data); 
+				case 4: temp_qinfo->singleitem = strdup(temp_data); 
 								break;
-				case 5: temp_qinfo->home = g_strdup(temp_data); break;
-				case 6: temp_qinfo->rdf = g_strdup(temp_data); break;
+				case 5: temp_qinfo->home = strdup(temp_data); break;
+				case 6: temp_qinfo->rdf = strdup(temp_data); break;
 				case 7: strptime(temp_data, "%Y-%m-%d %T", &(temp_qinfo->ctime));
 								break;
 				case 8: temp_qinfo->owneruid = atoi(temp_data); break;
-				case 9: temp_qinfo->ownername = g_strdup(temp_data); break;
+				case 9: temp_qinfo->ownername = strdup(temp_data); break;
 			}
 		}
 
-		/*temp_iter = g_list_next(temp_iter);*/
 		temp_iter = ilist_next(temp_iter);
 	}
 
@@ -355,12 +350,12 @@ ArticleInfo **INEWS_digest(int n) {
 
 			switch (++record_pos) {
 				case 1: tempinfo->aid = atoi(tempstring); break;
-				case 2: tempinfo->title = g_strdup(tempstring); break;
+				case 2: tempinfo->title = strdup(tempstring); break;
 				case 3: strptime(tempstring, "%Y-%m-%d %T", &(tempinfo->ctime));
 								break;
 				case 4: tempinfo->owneruid = atoi(tempstring); break;
-				case 5: tempinfo->ownername = g_strdup(tempstring); break;
-				case 6: tempinfo->dottedip = g_strdup(tempstring); break;
+				case 5: tempinfo->ownername = strdup(tempstring); break;
+				case 6: tempinfo->dottedip = strdup(tempstring); break;
 				case 7: tempinfo->approved = atoi(tempstring); break;
 				case 8: tempinfo->deleted = atoi(tempstring); break;
 			}
@@ -587,7 +582,6 @@ Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool delete) {
 
 
 void INEWS_disconnect() {
-	/*GList *qinfo_iter = qinfoptr;*/
 	IList *qinfo_iter = qinfoptr;
 
 	if (!serverstate.connected) return;
@@ -608,7 +602,7 @@ void INEWS_disconnect() {
 	
 	while (1) {
 		__free_queue_info_list_element(qinfo_iter);
-		qinfo_iter = /*g_list_remove_link(qinfo_iter, qinfo_iter)*/ ilist_remove(qinfo_iter);
+		qinfo_iter = ilist_remove(qinfo_iter);
 		if (!qinfo_iter) break;
 	}
 }
