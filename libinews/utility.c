@@ -45,17 +45,18 @@ QueueInfo *INEWS_getQueueInfo(int qid) {
 	do {
 		if (((QueueInfo *)(iter->data))->qid == qid) 
 			return ((QueueInfo *)(iter->data));
-	} while (iter = g_list_next(iter));
+	} while ((iter = g_list_next(iter)));
+
+	return NULL;
 }
 
 QueueInfo **INEWS_getAllQueuesInfo() {
 	QueueInfo **retval;
-	int i;
 	GList *iter = qinfoptr;
 
 	retval = (QueueInfo **)malloc(g_list_length(qinfoptr) * sizeof(QueueInfo *));
 	
-	for (i = 0; i < g_list_length(qinfoptr); i++, iter = g_list_next(iter)) {
+	for (Uint32 i = 0; i < g_list_length(qinfoptr); i++, iter = g_list_next(iter)) {
 		QueueInfo *temp;
 		
 		temp = (QueueInfo *)malloc(sizeof(QueueInfo));
@@ -69,9 +70,7 @@ QueueInfo **INEWS_getAllQueuesInfo() {
 }
 
 void INEWS_freeDigest(ArticleInfo **digest) {
-	int i;
-
-	for (i = 0; i < (sizeof(digest) / sizeof(ArticleInfo *)); i++) {
+	for (Uint32 i = 0; i < (sizeof(digest) / sizeof(ArticleInfo *)); i++) {
 		free(digest[i]->title);
 		free(digest[i]->ownername);
 		free(digest[i]->dottedip);
@@ -82,9 +81,7 @@ void INEWS_freeDigest(ArticleInfo **digest) {
 }
 
 void INEWS_freeQueuesInfo(QueueInfo **qinfo) {
-	int i;
-
-	for (i = 0; i < (sizeof(qinfo) / sizeof(QueueInfo *)); i++) {
+	for (Uint32 i = 0; i < (sizeof(qinfo) / sizeof(QueueInfo *)); i++) {
 		free(qinfo[i]->name);
 		free(qinfo[i]->description);
 		free(qinfo[i]->digest);
@@ -115,4 +112,17 @@ void __free_queue_info_list_element(GList *ptr) {
 
 char *__chop(char *str) {
 	return g_strstrip(str);
+}
+
+void __print_protocol_fuckery_message() {
+  void *last_call[2];
+  char **last_call_name;
+
+  backtrace(last_call, 2);
+  last_call_name = (char **)backtrace_symbols(last_call, 2);
+
+  printf("Guru meditation error in %s; unexpected server response (try French?)\n",
+         last_call_name[1]);
+
+  free(last_call_name);
 }
