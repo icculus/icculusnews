@@ -747,6 +747,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
         $t = str_replace("&lt;", '<', $t);
         $t = str_replace("&gt;", '>', $t);
         $t = str_replace("&amp;", '&', $t);
+        $t = str_replace("&quot;", '\"', $t);
         $editor = "<script type='text/javascript'>\n" .
                   "<!--\n" .
                   "var oFCKeditor = new FCKeditor('form_text');\n" .
@@ -755,7 +756,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
                   "oFCKeditor.Create();\n" .
                   "//-->\n" .
                   "</script>\n" .
-                  "<input type='hidden' name='fckeditor' value='1'>\n";
+                  "<input type='hidden' name='useeditor' value='1'>\n";
     }
     else
     { 
