@@ -357,7 +357,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
     if (offset > 0)
         sprintf(off_str, "%i", offset);
     else
-        sprintf(off_str, "-", offset);
+        sprintf(off_str, "-");
 
     sprintf(tempstring, "DIGEST %s %i\n", off_str, n);
 
@@ -533,6 +533,7 @@ Sint8 INEWS_submitArticle(char *title, char *body) {
 
 Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve) {
     char tempstring[256];
+    ArticleInfo **artinfo;
 
     if (!serverstate.connected) {
 	__inews_errno = ERR_DISCONNECTED;
@@ -543,6 +544,17 @@ Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve) {
 	__inews_errno = ERR_NOSUCHQUEUE;
 	goto end_failure;
     }
+
+    artinfo = INEWS_digest(aid + 1, 1);
+    if (artinfo[0]->approved == approve) {
+        INEWS_freeDigest(artinfo);
+        goto end_success;
+    } else if (artinfo[0]->deleted) {
+        INEWS_freeDigest(artinfo);
+        __inews_errno = ERR_GENERIC;
+        goto end_failure;
+    } else INEWS_freeDigest(artinfo);
+
 
     memset(tempstring, 0, 256);
 
@@ -593,8 +605,9 @@ Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve) {
     FUNC_END(0, -1);
 }
 
-Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool delete) {
+Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool deleteflag) {
     char tempstring[256];
+    ArticleInfo **artinfo;
 
     if (!serverstate.connected) {
 	__inews_errno = ERR_DISCONNECTED;
@@ -606,9 +619,15 @@ Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool delete) {
 	goto end_failure;
     }
 
+    artinfo = INEWS_digest(aid + 1, 1);
+    if (artinfo[0]->deleted == deleteflag) {
+        INEWS_freeDigest(artinfo);
+        goto end_success;
+    } else INEWS_freeDigest(artinfo);
+
     memset(tempstring, 0, 256);
 
-    if (delete) {
+    if (deleteflag) {
 	sprintf(tempstring, "DELETE %i\n", aid);
     } else {
 	sprintf(tempstring, "UNDELETE %i\n", aid);
