@@ -30,7 +30,10 @@
 																				int __i; 															\
 																				end_success: 													\
 																					__i = 0; 														\
-																					__inews_errno = ERR_SUCCESS;				\
+																					__inews_errno = (__inews_errno ==   \
+																													 ERR_STORYTOOLONG) ?\ 
+																													 ERR_STORYTOOLONG : \
+																													 ERR_SUCCESS;				\
 																					goto real_end; 											\
 																				end_failure: 													\
 																					__i = 1;	 													\
@@ -328,7 +331,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
 
     /* iterate through the cache, and set the offset to the lowest-numbered
      * cached item. assume that the items are listed in descending order of
-     * article ID. */
+     * article ID, and that there are no gaps in the cache. */
 
     for (IList *ptr = digestcache; ptr; ptr = ilist_next(ptr)) {
         ArticleInfo *tempptr = (ArticleInfo *)malloc(sizeof(ArticleInfo));
@@ -451,6 +454,10 @@ ArticleInfo **INEWS_digest(int offset, int n) {
 }
 
 Sint8 INEWS_submitArticle(char *title, char *body) {
+    return INEWS_submitEditArticle(title, body, -1);
+}
+
+Sint8 INEWS_submitEditArticle(char *title, char *body, int aid) {
     char tempstring[512];
     Uint32 maxlen;
 
@@ -466,7 +473,11 @@ Sint8 INEWS_submitArticle(char *title, char *body) {
 
     memset(tempstring, 0, 512);
 
-    sprintf(tempstring, "POST %s\n", title);
+    if (aid > 0) {
+	sprintf(tempstring, "EDIT %i %s\n", aid, title);
+    } else {
+	sprintf(tempstring, "POST %s\n", title);
+    }
 
     pthread_mutex_lock(&net_mutex);
 

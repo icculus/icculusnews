@@ -94,6 +94,7 @@ Sint8 INEWS_retrQueueInfo();
 Sint8 INEWS_changeQueue(int qid);
 ArticleInfo **INEWS_digest(int offset, int n);
 Sint8 INEWS_submitArticle(char *title, char *body);
+Sint8 INEWS_submitEditArticle(char *title, char *body, int aid);
 Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve);
 Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool deleteflag);
 void INEWS_disconnect();

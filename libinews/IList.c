@@ -27,6 +27,9 @@ IList *ilist_append_data(IList *list, void *data);
 IList *ilist_prepend(IList *list, IList *new_ptr);
 IList *ilist_prepend_data(IList *list, void *data);
 
+IList *ilist_insert(IList *insert_after, IList *new_ptr);
+IList *ilist_insert_data(IList *insert_after, void *data);
+
 IList *ilist_remove(IList *ptr);
 
 IList *ilist_first(IList *list);
@@ -37,72 +40,92 @@ unsigned int ilist_length(IList *ptr);
 IList *__get_last(IList *list);
 IList *__get_first(IList *list);
 
-/* FIXME: extremely quick implementation. probably 50 zillion bugs in the next
- * 65 lines, but who's counting? -- vogon. */
+/* FIXME: extremely quick implementation. probably 50 zillion bugs, but who's
+ * counting? -- vogon. */
 
 IList *ilist_append(IList *list, IList *new_ptr) {
-	new_ptr->prev = __get_last(list);
-	if (new_ptr->prev) new_ptr->prev->next = new_ptr;
-	new_ptr->next = NULL;
+    new_ptr->prev = __get_last(list);
+    if (new_ptr->prev) new_ptr->prev->next = new_ptr;
+    new_ptr->next = NULL;
 
-	return __get_first(new_ptr);
+    return __get_first(new_ptr);
 }
 
 IList *ilist_append_data(IList *list, void *data) {
-	IList *new_ptr = (IList *)malloc(sizeof(IList));
+    IList *new_ptr = (IList *)malloc(sizeof(IList));
 
-	new_ptr->data = data;
+    new_ptr->data = data;
 
-	return ilist_append(list, new_ptr);
+    return ilist_append(list, new_ptr);
 }
 
 IList *ilist_prepend(IList *list, IList *new_ptr) {
-	new_ptr->next = __get_first(list);
-	if (new_ptr->next) new_ptr->next->prev = new_ptr;
-	new_ptr->prev = NULL;
+    new_ptr->next = __get_first(list);
+    if (new_ptr->next) new_ptr->next->prev = new_ptr;
+    new_ptr->prev = NULL;
 
-	return new_ptr;
+    return new_ptr;
 }
 
 IList *ilist_prepend_data(IList *list, void *data) {
-	IList *new_ptr = (IList *)malloc(sizeof(IList));
+    IList *new_ptr = (IList *)malloc(sizeof(IList));
 
-	new_ptr->data = data;
+    new_ptr->data = data;
 
-	return ilist_prepend(list, new_ptr);
+    return ilist_prepend(list, new_ptr);
+}
+
+IList *ilist_insert(IList *insert_after, IList *new_ptr) {
+    new_ptr->prev = insert_after;
+
+    if (insert_after) {
+	new_ptr->next = insert_after->next;
+	insert_after->next = new_ptr;
+	if (new_ptr->next) new_ptr->next->prev = new_ptr;
+    } else new_ptr->next = NULL;
+
+    return __get_first(new_ptr);
+}
+
+IList *ilist_insert_data(IList *insert_after, void *data) {
+    IList *new_ptr = (IList *)malloc(sizeof(IList));
+
+    new_ptr->data = data;
+
+    return ilist_insert(insert_after, new_ptr);
 }
 
 IList *ilist_remove(IList *ptr) {
-	if (ptr->prev) ptr->prev->next = ptr->next;
-	if (ptr->next) ptr->next->prev = ptr->prev;
+    if (ptr->prev) ptr->prev->next = ptr->next;
+    if (ptr->next) ptr->next->prev = ptr->prev;
 
-	return __get_first(ptr->next);
+    return __get_first(ptr->next);
 }
 
 unsigned int ilist_length(IList *ptr) {
-	int count = 0;
-				
-	for (IList *iter = __get_first(ptr); iter != NULL; iter = iter->next) {
-		count++;
-	}
+    int count = 0;
 
-	return count;
+    for (IList *iter = __get_first(ptr); iter; iter = iter->next) {
+	count++;
+    }
+
+    return count;
 }
 
 IList *__get_last(IList *list) {
-	IList *last = list;
+    IList *last = list;
 
-	while (last && last->next) { last = last->next; }
+    while (last && last->next) { last = last->next; }
 
-	return last;
+    return last;
 }
 
 IList *__get_first(IList *list) {
-	IList *first = list;
+    IList *first = list;
 
-	while (first && first->prev) { first = first->prev; }
+    while (first && first->prev) { first = first->prev; }
 
-	return first;
+    return first;
 }
 
 IList *ilist_first(IList *list) { return __get_first(list); }

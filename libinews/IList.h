@@ -35,6 +35,9 @@ extern IList *ilist_append_data(IList *list, void *data);
 extern IList *ilist_prepend(IList *list, IList *new_ptr);
 extern IList *ilist_prepend_data(IList *list, void *data);
 
+extern IList *ilist_insert(IList *insert_after, IList *new_ptr);
+extern IList *ilist_insert_data(IList *insert_after, void *data);
+
 extern IList *ilist_remove(IList *ptr);
 
 extern IList *ilist_first(IList *ptr);
