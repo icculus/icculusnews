@@ -1,5 +1,5 @@
 =======================================
-=== IcculusNews Protocol v. 2.0beta ===
+===== IcculusNews Protocol v. 2.0 =====
 =======================================
 
 Assumptions:
@@ -45,6 +45,18 @@ MSG_NOCMD.
 If the server has received a command that it does not recognize, it
 should respond with MSG_INVALCMD.
 
+<-- + Here comes...					(MSG_STARTDAT)
+
+If the last command received by the server expects a response greater
+than one line in length, the server should prefix the response with
+MSG_STARTDAT.
+
+<-- .							(MSG_ENDDAT)
+
+MSG_ENDDAT is used to end a block of data begun with MSG_STARTDAT that
+has non-constant length.  Such data is returned by ENUM queues and
+DIGEST, among others.
+
 Connection and Authentication:
 
 --> connect()
@@ -53,28 +65,29 @@ Connection and Authentication:
 server. It expects no input to begin the connection process.
 
 <-- + IcculusNews daemon <version>                      (MSG_VER)
---> AUTH "<username>" "<password>"			(MSG_AUTH)
+--> AUTH ["<username>" "<password>" | -]		(MSG_AUTH)
 <-- + <uid>, <qid>					(MSG_UIDQID)
 <-- - Authorization for "<username>" failed.		(MSG_AUTHFAIL)
 <-- - This account has been disabled.			(MSG_ACCTLOCK)
 <-- - Failed to set default queue: <errstr>		(MSG_NODQUEUE)
 
         <version> is an arbitrary text string describing the version of
-the daemon.  Example: "2.0.0beta".  Once this string has been sent, the
-server expects a MSG_AUTH in response.  All other inputs will result in
-the sending of MSG_NOTAUTH and the closing of the connection.
+the daemon.  Once this string has been sent, the server expects a
+MSG_AUTH in response.  All other inputs will result in the sending of
+MSG_NOTAUTH and the closing of the connection.
 
 	A properly-formatted MSG_AUTH will solicit one of four replies:
 MSG_UIDQID, MSG_AUTHFAIL, MSG_ACCTLOCK, or MSG_NODQUEUE.
 
 	The <username> and <password> arguments to MSG_AUTH are
 arbitrary text strings describing the username/password pair of a user
-on the remote server.  If they do not describe a valid user, the server
-should respond with MSG_AUTHFAIL.  If the user whose account is
-described is not authorized to log in, the server should respond with
-MSG_ACCTLOCK.  If the user's default queue cannot be set, the server
-should respond with MSG_NODQUEUE, where <errstr> is an arbitrary text
-string describing the error encountered.
+on the remote server.  Alternately, the client can specify a '-' (ASCII
+45) to authenticate as the anonymous user.  If the MSG_AUTH does not
+describe a valid user, the server should respond with MSG_AUTHFAIL. If
+the user whose account is described is not authorized to log in, the
+server should respond with MSG_ACCTLOCK.  If the user's default queue
+cannot be set, the server should respond with MSG_NODQUEUE, where
+<errstr> is an arbitrary text string describing the error encountered.
 
 	If authentication has completed successfully, the server will
 reply with MSG_UIDQID, where <uid> is an integer representing the
@@ -83,9 +96,75 @@ ID.
 
 Queue Information:
 
+--> ENUM queues						(MSG_ENUMQ)
+<-- 							(MSG_STARTDAT)
+<-- <qid>						(MSG_QID)
+<-- <queue name>					(MSG_QNAME)
+<-- 	...
+<-- 							(MSG_ENDDAT)
+
+	MSG_ENUMQ is a request for basic information on all queues on
+the current server.  The server should respond with a block of data
+beginning with MSG_STARTDAT.  This block of data should contain a
+number of MSG_QID / MSG_QNAME pairs, each corresponding to the queue ID
+and queue name of a single queue.  The end of the data should be marked
+with a MSG_ENDDAT.
+
 User Information:
 
+--> USERINFO						(MSG_USERINFO)
+<--							(MSG_UIDQID)
+
+	MSG_USERINFO is a request for information on the current user
+and queue in use.  The server should respond with a MSG_UIDQID, where
+<uid> is the current user ID, and <qid> is the current queue ID.
+
 Article Information:
+
+--> DIGEST [<offset> | -] <n>				(MSG_DIGEST)
+<-- - no queue selected.       			 	(MSG_NOQUEUE)
+<-- 							(MSG_STARTDAT)
+<-- <aid>						(MSG_AID)
+<-- <title>						(MSG_ATITLE)
+<-- <ctime>						(MSG_ACTIME)
+<-- <uid>						(MSG_AOWNERID)
+<-- <uname>						(MSG_AOWNERNM)
+<-- <ip>						(MSG_AOWNERIP)
+<-- <approved>						(MSG_AAPPROVE)
+<-- <deleted>						(MSG_ADELETED)
+<--	...						
+<--							(MSG_ENDDAT)
+
+	MSG_DIGEST is a request for information on a set of articles in
+the currently-selected queue.  <offset> is either an integer indicating
+the upper bound on the article ID to be queried, such that all articles
+returned have an article ID of less than <offset>, or a '-' (ASCII 45),
+indicating no upper bound.  <n> is an upper bound on the number of
+articles for which information is wanted; if there are fewer than <n>
+records matching the server's query, the block will end prematurely.
+
+	If the current queue is 0, the server should reply with
+MSG_NOQUEUE.  Otherwise, it should return a block of data.  The block
+of data should begin with MSG_STARTDAT, and then contain a number of
+MSG_AID / MSG_ATITLE / MSG_ACTIME / MSG_AOWNERID / MSG_AOWNERNM /
+MSG_AOWNERIP / MSG_AAPPROVE / MSG_ADELETED sets, where:
+
+- MSG_AID is an integer describing the article's article ID; 
+- MSG_ATITLE is an arbitrary text string defining the title of the
+article (titles do not have to be unique across articles); 
+- MSG_ACTIME is the time at which the article was created (in
+YYYY-MM-DD HH:MM:SS format);  
+- MSG_AOWNERID is the user ID of the creator of the article; 
+- MSG_AOWNERNM is the user name of the creator of the article (or the
+system-wide anonymous username if UID 0); 
+- MSG_AOWNERIP is the dotted-quad IP of the computer from which the
+article was submitted;  
+- MSG_AAPPROVE is a flag stating the article's approval status (1 if
+the article has been approved, 0 otherwise);
+- MSG_ADELETED is a flag stating the article's deletion status (1 if it
+is marked to be deleted at the next purge, 0 otherwise).
+
+	The end of the block should be marked with MSG_ENDDAT.
 
 Article Submission:
 
