@@ -11,23 +11,14 @@
 #define _XOPEN_SOURCE
 #include <time.h>
 
-/*typedef unsigned char Uint8;
+typedef unsigned char Uint8;
 typedef unsigned short Uint16;
 typedef unsigned int Uint32;
 typedef unsigned long long Uint64;
 typedef signed char Sint8;
 typedef signed short Sint16;
 typedef signed int Sint32;
-typedef signed long long Sint64;*/
-
-#define Uint8 unsigned char
-#define Uint16 unsigned short
-#define Uint32 unsigned int
-#define Uint64 unsigned long long
-#define Sint8 signed char
-#define Sint16 signed short
-#define Sint32 signed int
-#define Sint64 signed long long
+typedef signed long long Sint64;
 
 typedef Uint8 bool;
 

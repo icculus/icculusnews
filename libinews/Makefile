@@ -1,6 +1,6 @@
 CC = gcc-3.2
-BASE_CFLAGS = -std=c99 -ggdb `pkg-config --cflags glib-2.0` `pth-config --cflags`
-BASE_LDFLAGS = -ggdb -shared `pkg-config --libs glib-2.0` `pth-config --libs` `pth-config --ldflags`
+BASE_CFLAGS = -std=c99 -ggdb `pkg-config --cflags glib-2.0` -D_REENTRANT
+BASE_LDFLAGS = -ggdb -shared `pkg-config --libs glib-2.0` -lpthread
 
 .c.o:
 	$(CC) $(BASE_CFLAGS) $(CFLAGS) -c $<

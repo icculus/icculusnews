@@ -11,35 +11,18 @@
 #include "IcculusNews.h"
 
 #include <netinet/in.h>
-#include <pth.h>
+#include <pthread.h>
 
 /* squelch all the implicit function decl warnings */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <execinfo.h>
-
-/* semaphore, other IPC crap */
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
 #include <errno.h>
 
 /* we use glib, because I'm too lazy to write 
  * string-mangling functions myself */
 #include <glib-2.0/glib.h>
-
-/* semaphore union */
-#if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
-/* our work is done for us */
-#else
-union semun {
-	int val;
-	struct semid_ds *buf;
-	unsigned short *array;
-	struct seminfo *__buf;
-};
-#endif
 
 #define INEWS_MAJOR __INEWS_LINKTIME_MAJOR
 #define INEWS_MINOR __INEWS_LINKTIME_MINOR
@@ -66,11 +49,8 @@ size_t sa_len;
 int keep_nopping;
 int __inews_errno;
 
-/* GStaticMutex net_mutex; */
-int net_sem;
-
-/* GThread *nop_thread_ptr; */
-pth_t nop_thread;
+pthread_mutex_t net_mutex;
+pthread_t nop_thread;
 
 Sint8 INEWS_init();
 void INEWS_deinit();
@@ -103,9 +83,5 @@ char *__chop(char *str);
 void *__nop_thread(void *foo);
 void __free_queue_info_list_element(GList *ptr);
 void __print_protocol_fuckery_message();
-
-/* semaphore functions */
-Sint8 __sem_lock(int sem);
-Sint8 __sem_unlock(int sem);
 
 #endif
