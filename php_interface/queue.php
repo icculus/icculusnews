@@ -702,6 +702,10 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
         $cancel_button = '<input type="submit" name="form_cancel" value="Cancel">';
     } // if
 
+    $beenpreviewedwidget = '';
+    if ((isset($_REQUEST['beenpreviewed'])) or (isset($_REQUEST['form_preview'])))
+        $beenpreviewedwidget = '<input type="hidden" name="beenpreviewed" value="1">';
+
     $newlogin_form = (isset($item['id'])) ?
         '' :
         "<a href=\"${_SERVER['PHP_SELF']}?action=login&form_next=post\"><font size=\"-2\">(Log in as someone else)</font></a>";
@@ -738,6 +742,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
         printf("\n<hr>\n\n");
     } // if
 
+    $editor_button = '';
     $editor = '';
     if (isset($_REQUEST['useeditor']))
     {
@@ -757,10 +762,13 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
                   "//-->\n" .
                   "</script>\n" .
                   "<input type='hidden' name='useeditor' value='1'>\n";
+        $editor_button = '<input type="submit" name="form_uselameeditor" value="Lame Editor">';
     }
     else
     { 
         $editor = "<textarea rows='10' name='form_text' cols='80'>{$item['text']}</textarea>";
+        if (file_exists("FCKeditor"))
+            $editor_button = '<input type="submit" name="form_usefckeditor" value="Fancy Editor">';
     }
 
     echo <<< EOF
@@ -768,6 +776,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
     <form method="post" action="${_SERVER['PHP_SELF']}?action=post$idarg">
       <input type="hidden" name="form_fromuser" value="{$item['author']}">
       <input type="hidden" name="form_postdate" value="{$item['postdate']}">
+      $beenpreviewedwidget
       <table width="100%">
         <tr>
           <td align="left">Posted by:</td>
@@ -798,6 +807,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
         <tr>
           <td colspan="2" align="center">
             <input type="submit" name="form_preview" value="Preview">
+            $editor_button
             $submit_button
             $cancel_button
           </td>
@@ -830,6 +840,21 @@ function handle_news_edit_commands()
 
     if (strlen($form_title) > 128)
         $form_title = substr($form_title, 0, 128);
+
+    if ($switching_editor)
+        return(true);
+
+    if ($_REQUEST['form_usefckeditor'])
+    {
+        $_REQUEST['useeditor'] = 1;
+        return(true);
+    }
+
+    if ($_REQUEST['form_uselameeditor'])
+    {
+        unset($_REQUEST['useeditor']);
+        return(true);
+    } 
 
     if ( (($form_preview) or ($form_submit)) and
          (($form_fromuser == '') or ($form_text == '') or ($form_title == '')) )
@@ -1058,7 +1083,10 @@ function do_post()
         $item['postdate'] = $form_postdate;
 
         if (isset($editid))
-            $item['id'] = $editid;
+            $item['id'] = $editid;        
+
+        if (!isset($_REQUEST['beenpreviewed']))
+            $allow_submit = false;
     } // if
 
     else  // not edited; pull from the daemon, or use a blank slate.
@@ -1504,8 +1532,10 @@ else if (!isset($actions[$action]))
     $action = 'unknown';
 } // else if
 
+
+
 $jsheaders = '';
-if (isset($_REQUEST['useeditor']))
+if ((isset($_REQUEST['useeditor'])) || (isset($_REQUEST['form_usefckeditor'])))
     $jsheaders .= '<script type="text/javascript" src="FCKeditor/fckeditor.js"></script>';
 
 ?>
