@@ -489,9 +489,9 @@ function news_changepassword($sock, $pword)
 } // news_changepassword
 
 
-function news_forgotpassword($sock, $email)
+function news_forgotpassword($sock, $user, $email)
 {
-    fputs($sock, "FORGOTPASSWORD $email\n");
+    fputs($sock, "FORGOTPASSWORD \"$user\" \"$email\"\n");
     $in = fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
