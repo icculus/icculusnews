@@ -128,7 +128,7 @@ extern Sint8 INEWS_auth(const char *username, const char *password);
 extern Sint8 INEWS_changeQueue(int qid);
 
 /* retrieve a digest of the currently-selected queue with n articles */
-extern ArticleInfo **INEWS_digest(int n);
+extern ArticleInfo **INEWS_digest(int offset, int n);
 
 /* submit an article. OMG */
 extern Sint8 INEWS_submitArticle(char *title, char *body);

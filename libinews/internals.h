@@ -74,7 +74,7 @@ Sint8 INEWS_connect(const char *hostname, Uint32 port);
 Sint8 INEWS_auth(const char *username, const char *password);
 Sint8 INEWS_retrQueueInfo();
 Sint8 INEWS_changeQueue(int qid);
-ArticleInfo **INEWS_digest(int n);
+ArticleInfo **INEWS_digest(int offset, int n);
 Sint8 INEWS_submitArticle(char *title, char *body);
 Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve);
 Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool delete);
