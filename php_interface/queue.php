@@ -90,7 +90,7 @@ function is_logged_in(&$uname, &$pass, &$queue)
     if (!isset($GLOBALS['HTTP_SESSION_VARS']['iccnews_username']))
         return(false);
 
-    if ($GLOBALS['HTTP_SESSION_VARS']['iccnews_username'] == false)
+    if ($GLOBALS['HTTP_SESSION_VARS']['iccnews_username'] === false)
         return(false);
 
     if (!session_is_registered('iccnews_userpass'))
@@ -99,7 +99,7 @@ function is_logged_in(&$uname, &$pass, &$queue)
     if (!isset($GLOBALS['HTTP_SESSION_VARS']['iccnews_userpass']))
         return(false);
 
-    if ($GLOBALS['HTTP_SESSION_VARS']['iccnews_userpass'] == false)
+    if ($GLOBALS['HTTP_SESSION_VARS']['iccnews_userpass'] === false)
         return(false);
 
     if (!session_is_registered('iccnews_userqueue'))
@@ -108,7 +108,7 @@ function is_logged_in(&$uname, &$pass, &$queue)
     if (!isset($GLOBALS['HTTP_SESSION_VARS']['iccnews_userqueue']))
         return(false);
 
-    if ($GLOBALS['HTTP_SESSION_VARS']['iccnews_userqueue'] == false)
+    if ($GLOBALS['HTTP_SESSION_VARS']['iccnews_userqueue'] === false)
         return(false);
 
     $uname = $GLOBALS['HTTP_SESSION_VARS']['iccnews_username'];
@@ -134,8 +134,11 @@ function get_connected(&$sock)
             $err = "Login failed: $err.";
         else
         {
-            if ($err = news_change_queue($sock, $queue))
-                $err = "Failed to select queue: $err.";
+            if ($queue != 0)
+            {
+                if ($err = news_change_queue($sock, $queue))
+                    $err = "Failed to select queue: $err.";
+            } // if
         } // else
     } // else
 
@@ -240,7 +243,7 @@ function output_news_queue_widgets($showall = 0)
     $queuelist = '';
     $err = get_connected($sock);
 
-    if (!isset($err))
+    if ( ($q != 0) && (!isset($err)) )
         $err = news_queueinfo($sock, $q, $qinfo);
 
     // !!! FIXME: an "htmlentities_whole_hashtable()" would be nice.
@@ -362,7 +365,13 @@ echo <<< EOF
 
 EOF;
 
-    output_queue_rows($sock, $showall);
+    if ($q != 0)
+        output_queue_rows($sock, $showall);
+    else
+    {
+        print('<tr><td colspan="5" align="center"><font color="#0000FF">');
+        print("Please select a queue from the above list.</font></td></tr>\n");
+    } // else
 
 echo <<< EOF
 
@@ -632,7 +641,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
 
     $newlogin_form = (isset($item['id'])) ?
         '' :
-        "<a href=\"$PHP_SELF?action=login\"><font size=\"-2\">(Log in as someone else)</font></a>";
+        "<a href=\"$PHP_SELF?action=login&form_next=post\"><font size=\"-2\">(Log in as someone else)</font></a>";
 
     $queue_form = '';
     if (count($queues) == 1)
@@ -828,7 +837,7 @@ function handle_news_edit_commands()
 
 
 
-function do_login($next_action = 'view')
+function do_login($next_action = NULL)
 {
     // !!! FIXME: tweak get_connected() so we don't need these globals here.
     global $daemon_host, $daemon_port;
@@ -836,6 +845,9 @@ function do_login($next_action = 'view')
     global $iccnews_username, $iccnews_userpass, $iccnews_userqueue;
     global $form_user, $form_pass, $form_next;
     global $actions;
+
+    if (!isset($next_action) && ($form_next))
+        $next_action = $form_next;
 
     if (!session_is_registered('iccnews_username'))
     {
@@ -885,8 +897,15 @@ function do_login($next_action = 'view')
             $iccnews_username = $form_user;
             $iccnews_userpass = $form_pass;
             $iccnews_userqueue = $qid;
-            if ( (isset($form_next)) && (isset($actions[$form_next])) )
-                $actions[$form_next]();
+            if ( (isset($next_action)) && (isset($actions[$next_action])) )
+                $actions[$next_action]();
+            else
+            {
+                if ($qid == 0)
+                    $actions['post']();
+                else
+                    $actions['view']();
+            } // else
         } // else
     } // else
 } // do_login
@@ -1039,16 +1058,188 @@ EOF;
 
 function do_newuser()
 {
-    echo <<<EOF
+    global $form_newuser_submit;
+    global $form_new_uname, $form_new_pword1, $form_new_pword2, $form_new_email;
+    global $daemon_host, $daemon_port;
+    global $SERVER_NAME, $REQUEST_URI;
 
-<center>
-  <p><font color="#FF0000">Not implemented yet!</font></p>
-  <p>Please <a href="mailto:icculus@clutteredmind.org">email Ryan</a> and
-     he'll create a new account for you. Hopefully this will be automated
-     soon.</p>
-</center>
+    if (!isset($GLOBALS['HTTPS']))
+    {
+         $href = "https://${SERVER_NAME}${REQUEST_URI}";
+         print "<p align=\"center\">You need a secure connection for this.</p>\n";
+         print "<p align=\"center\">Try <a href=\"$href\">here</a>.</p>\n";
+         return;
+    } // if
+
+    $output_widgets = true;
+    $err = NULL;
+    if (isset($form_newuser_submit))
+    {
+        if ( (!$form_new_uname) ||
+             (!$form_new_pword1) ||
+             (!$form_new_pword2) ||
+             (!$form_new_email) )
+        {
+            $err = "Please enter all fields.";
+        } // if
+
+        else if (strpos($form_new_email, '@') === false)
+        {
+            $err = "Invalid email address.";
+        } // else if
+
+        else if (strcmp($form_new_pword1, $form_new_pword2) != 0)
+        {
+            $err = "Passwords don't match.";
+        } // else if
+
+        else
+        {
+            if ($err = news_login($sock, $daemon_host, $daemon_port))
+                $err = "Login failed: $err.";
+            else
+            {
+                $err = news_createuser($sock, $form_new_uname,
+                                       $form_new_email, $form_new_pword1);
+                if ($err)
+                    $err = "Couldn't create new account: $err";
+            } // else
+
+            news_logout($sock);
+        } // else
+
+        if ($err == NULL)
+        {
+            $output_widgets = false;
+            print("<center>\n");
+            print("<font color=\"#0000FF\">Account created!</font><br>\n");
+            print("You can go <a href=\"$PHP_SELF?action=login\">here</a>");
+            print(" to login and try your new account out.\n</center>\n");
+        } // if
+        else
+        {
+            print("<center><font color=\"#FF0000\">$err</font></center>\n");
+        } // else
+    } // if
+
+    if ($output_widgets)
+    {
+        echo <<<EOF
+
+          <script language="javascript">
+          <!--
+            function newuserfocus()
+            {
+                document.newuserform.form_new_uname.focus();
+            } // newuserfocus
+
+            function trim(inputString)
+            {
+                var retValue = inputString;
+                var ch = retValue.substring(0, 1);
+                while (ch == " ")
+                {
+                    retValue = retValue.substring(1, retValue.length);
+                    ch = retValue.substring(0, 1);
+                } // while
+
+                ch = retValue.substring(retValue.length-1, retValue.length);
+                while (ch == " ")
+                {
+                    retValue = retValue.substring(0, retValue.length-1);
+                    ch = retValue.substring(retValue.length-1, retValue.length);
+                } // while
+
+                return retValue;
+            } // trim
+
+            function check_newuser_fields()
+            {
+                if (trim(document.newuserform.form_new_uname.value) == "")
+                {
+                    alert("Please enter a username.");
+                    return(false);
+                } // if
+
+                if (trim(document.newuserform.form_new_email.value) == "")
+                {
+                    alert("Please enter a valid email address.");
+                    return(false);
+                } // if
+
+                if (document.newuserform.form_new_email.value.indexOf('@') == -1)
+                {
+                    alert("Please enter a valid email address.");
+                    return(false);
+                } // if
+
+                if (trim(document.newuserform.form_new_pword1.value) == "")
+                {
+                    alert("Please enter a password.");
+                    return(false);
+                } // if
+
+                if (trim(document.newuserform.form_new_pword1.value) !=
+                    trim(document.newuserform.form_new_pword2.value))
+                {
+                    alert("Password fields don't match.");
+                    return(false);
+                } // if
+
+                return(true);
+            } // check_login_fields
+
+          //-->
+          </script>
+
+          <center>
+            <p>
+            <table width="75%" border="1"><tr><td align="center">
+            <i><b><u>PLEASE ENTER YOUR REAL EMAIL ADDRESS.</u></b></i><br>
+            It will not be used for any sort of spam, nor given to any one,
+            nor even looked at by a human being. It is stored so the news
+            system can send you an automated response in case you forget your
+            password. If you give a bogus address, in a misguided attempt to
+            defend against spam, we will <i>not</i> be able to help you when
+            you can't remember your password.<br>
+            <b>You Have Been Warned.</b>
+            </td></tr></table>
+
+            <p>
+            <form name="newuserform"
+                  method="post"
+                  onsubmit="return check_newuser_fields();"
+                  action="$PHP_SELF?action=newuser">
+              <table border="0">
+                <tr>
+                  <td align="right">Username:</td>
+                  <td><input type="text" name="form_new_uname" value="$form_new_uname"></td>
+                </tr>
+                <tr>
+                  <td align="right">Email address:</td>
+                  <td><input type="text" name="form_new_email" value="$form_new_email"></td>
+                </tr>
+                <tr>
+                  <td align="right">Password:</td>
+                  <td><input type="password" name="form_new_pword1" value=""></td>
+                </tr>
+                <tr>
+                  <td align="right">Reenter password:</td>
+                  <td><input type="password" name="form_new_pword2" value=""></td>
+                </tr>
+                <tr>
+                  <td align="center" colspan="2">
+                    <input type="submit" name="form_newuser_submit" value="Create account">
+                    <input type="reset" value="Clear fields">
+                  </td>
+                </tr>
+              </table>
+            </form>
+          </center>
 
 EOF;
+
+    } // if
 } // do_newuser
 
 
@@ -1076,8 +1267,10 @@ function do_unknown()
 
 function body_attributes($action)
 {
-    if ($action == 'login')
+    if (strcmp($action, 'login') == 0)
         print('onLoad="loginfocus();"');
+    else if (strcmp($action, 'newuser') == 0)
+        print('onLoad="newuserfocus();"');
 } // body_attributes
 
 // mainline/setup.
@@ -1098,6 +1291,8 @@ if (!isset($action))
 {
     if (!is_logged_in($u, $p, $q))
         $action = 'login';
+    else if ($q == 0)
+        $action = 'post';
     else
         $action = 'view';
 } // if
