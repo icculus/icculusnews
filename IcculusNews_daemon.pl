@@ -280,6 +280,7 @@ sub do_log {
     my $text = shift;
 
     if ($use_syslog >= $level) {
+        $text =~ s/%/%%/g;  # syslog apparently does formatting or something.
         syslog("info", "$text\n")
              or report_fatal("Couldn't write to syslog: $!");
     }
