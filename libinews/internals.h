@@ -67,6 +67,7 @@ int INEWS_auth(const char *username, const char *password);
 int INEWS_retrQueueInfo();
 int INEWS_changeQueue(int qid);
 ArticleInfo **INEWS_digest(int n);
+int INEWS_submitArticle(char *title, char *body);
 void INEWS_disconnect();
 
 int __read_line(char *str, int max_sz);
