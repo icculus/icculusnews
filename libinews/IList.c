@@ -1,7 +1,19 @@
 /* LibINews -- the only IcculusNews backend with the power of nougat
  * copyright (c) 2002 Colin "vogon" Bayer
  *
- * [ -- Insert GPL boilerplate here -- ]
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
 
@@ -9,13 +21,16 @@
 
 /* IList, the helping phriendly doubly-linked list. */
 
-IList *ilist_append(IList *list, IList *new);
+IList *ilist_append(IList *list, IList *new_ptr);
 IList *ilist_append_data(IList *list, void *data);
 
-IList *ilist_prepend(IList *list, IList *new);
+IList *ilist_prepend(IList *list, IList *new_ptr);
 IList *ilist_prepend_data(IList *list, void *data);
 
 IList *ilist_remove(IList *ptr);
+
+IList *ilist_first(IList *list);
+IList *ilist_last(IList *list);
 
 unsigned int ilist_length(IList *ptr);
 
@@ -25,36 +40,36 @@ IList *__get_first(IList *list);
 /* FIXME: extremely quick implementation. probably 50 zillion bugs in the next
  * 65 lines, but who's counting? -- vogon. */
 
-IList *ilist_append(IList *list, IList *new) {
-	new->prev = __get_last(list);
-	if (new->prev) new->prev->next = new;
-	new->next = NULL;
+IList *ilist_append(IList *list, IList *new_ptr) {
+	new_ptr->prev = __get_last(list);
+	if (new_ptr->prev) new_ptr->prev->next = new_ptr;
+	new_ptr->next = NULL;
 
-	return __get_first(new);
+	return __get_first(new_ptr);
 }
 
 IList *ilist_append_data(IList *list, void *data) {
-	IList *new = (IList *)malloc(sizeof(IList));
+	IList *new_ptr = (IList *)malloc(sizeof(IList));
 
-	new->data = data;
+	new_ptr->data = data;
 
-	return ilist_append(list, new);
+	return ilist_append(list, new_ptr);
 }
 
-IList *ilist_prepend(IList *list, IList *new) {
-	new->next = __get_first(list);
-	if (new->next) new->next->prev = new;
-	new->prev = NULL;
+IList *ilist_prepend(IList *list, IList *new_ptr) {
+	new_ptr->next = __get_first(list);
+	if (new_ptr->next) new_ptr->next->prev = new_ptr;
+	new_ptr->prev = NULL;
 
-	return new;
+	return new_ptr;
 }
 
 IList *ilist_prepend_data(IList *list, void *data) {
-	IList *new = (IList *)malloc(sizeof(IList));
+	IList *new_ptr = (IList *)malloc(sizeof(IList));
 
-	new->data = data;
+	new_ptr->data = data;
 
-	return ilist_prepend(list, new);
+	return ilist_prepend(list, new_ptr);
 }
 
 IList *ilist_remove(IList *ptr) {
@@ -89,3 +104,6 @@ IList *__get_first(IList *list) {
 
 	return first;
 }
+
+IList *ilist_first(IList *list) { return __get_first(list); }
+IList *ilist_last(IList *list) { return __get_last(list); }

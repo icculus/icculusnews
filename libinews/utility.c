@@ -1,7 +1,19 @@
 /* LibINews -- the only IcculusNews backend with the power of nougat
  * copyright (c) 2002 Colin "vogon" Bayer
- * 
- * [ -- Insert GPL boilerplate here -- ]
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * 
  */
 
@@ -16,7 +28,7 @@ const INEWS_Version *INEWS_getVersion() {
 }
 
 inline const char *INEWS_getServerVersion() {
-	return serverstate.connected ? serverstate.verstring : NULL;				
+	return serverstate.connected ? serverstate.verstring : NULL;
 }
 
 inline const char *INEWS_getHost() {
@@ -43,7 +55,7 @@ QueueInfo *INEWS_getQueueInfo(int qid) {
 	IList *iter = qinfoptr;
 				
 	do {
-		if (((QueueInfo *)(iter->data))->qid == qid) 
+		if (((QueueInfo *)(iter->data))->qid == qid)
 			return ((QueueInfo *)(iter->data));
 	} while ((iter = ilist_next(iter)));
 
@@ -56,7 +68,7 @@ QueueInfo **INEWS_getAllQueuesInfo() {
 
 	retval = (QueueInfo **)malloc(ilist_length(qinfoptr) * sizeof(QueueInfo *));
 	
-	for (Uint32 i = 0; i < ilist_length(qinfoptr); i++, iter = /*g_list_next*/ilist_next(iter)) {
+	for (Uint32 i = 0; i < ilist_length(qinfoptr); i++, iter = ilist_next(iter)) {
 		QueueInfo *temp;
 		
 		temp = (QueueInfo *)malloc(sizeof(QueueInfo));
@@ -109,10 +121,6 @@ void __free_queue_info_list_element(IList *ptr) {
   free(((QueueInfo *)(ptr->data))->ownername);
   free(ptr->data);
 }
-
-/*char *__chop(char *str) {
-	return g_strstrip(str);
-}*/
 
 char *__chop(char *str) {
 	char *temp = str;

@@ -1,7 +1,19 @@
 /* LibINews -- the only IcculusNews backend with the power of nougat
  * copyright (c) 2002 Colin "vogon" Bayer
- * 
- * [ -- Insert GPL boilerplate here -- ]
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * 
  */
 
@@ -32,15 +44,20 @@
 INEWS_Version __inews_version;
 
 typedef struct {
-	bool connected;
-	char *hostname;
-	Uint16 port;
-	char *username;
-	char *password;
-	Uint8 uid;
-	Uint8 qid;
-	char *verstring;
+    bool connected;
+    char *hostname;
+    Uint16 port;
+    char *username;
+    char *password;
+    Uint8 uid;
+    Uint8 qid;
+    char *verstring;
 } ServerState;
+
+typedef struct {
+    int qid;
+    IList *head;
+} ArticleLinkedListHeader;
 
 ServerState serverstate;
 IList *qinfoptr;
@@ -49,6 +66,7 @@ struct sockaddr_in sa;
 size_t sa_len;
 int keep_nopping;
 int __inews_errno;
+IList *digestcache;
 
 pthread_mutex_t net_mutex;
 pthread_t nop_thread;
