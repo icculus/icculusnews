@@ -74,6 +74,7 @@ use constant syslogDaemon   => 2;
 use constant syslogAuth     => 3;
 use constant syslogCommand  => 4;
 use constant syslogSuccess  => 5;
+use constant syslogAll      => 0xFFFFFFFF;
 
 #-----------------------------------------------------------------------------#
 #             CONFIGURATION VARIABLES: Change to suit your needs...           #
@@ -189,7 +190,9 @@ my $default_queue_flags = 0;
 #  created is 1, so that's probably a good one, unless you've got some other
 #  queue you prefer. Users can change to a different queue via the QUEUE
 #  command, and assign a new default queue with the SETDEFAULTQUEUE command.
-my $default_queue = 1;
+# If the default queue is 0, the web interface takes users to the "post"
+#  action by default, instead of the queue view.
+my $default_queue = 0;
 
 # This is the host to connect to for database access.
 my $dbhost = 'localhost';
@@ -663,26 +666,33 @@ sub queue_is_forbidden {
 
 sub change_queue {
     my $args = shift;
-    my $link = get_database_link();
-    my $sql = "select q.flags, r.rights, q.owner" .
-              " from $dbtable_queues as q" .
-              " left outer join $dbtable_queue_rights as r" .
-              " on r.qid=q.id and r.uid=$auth_uid" .
-              " where q.id=$args";
 
-    my $sth = $link->prepare($sql);
-    $sth->execute() or report_fatal("can't execute query: $sth->errstr");
-    my @row = $sth->fetchrow_array();
-    $sth->finish();
-
-    $row[1] = 0 if ((@row) and (not defined $row[1]));
-
-    if ((not @row) or (queue_is_forbidden($row[0], $row[1], $row[2]))) {
-        return("Can't select that queue.");
+    if ($args == 0) {
+        $queue = 0;
+        update_queue_rights(0);
     } else {
-        update_queue_rights($row[1]);
-        $queue = $args;
+        my $link = get_database_link();
+        my $sql = "select q.flags, r.rights, q.owner" .
+                  " from $dbtable_queues as q" .
+                  " left outer join $dbtable_queue_rights as r" .
+                  " on r.qid=q.id and r.uid=$auth_uid" .
+                  " where q.id=$args";
+
+        my $sth = $link->prepare($sql);
+        $sth->execute() or report_fatal("can't execute query: $sth->errstr");
+        my @row = $sth->fetchrow_array();
+        $sth->finish();
+
+        $row[1] = 0 if ((@row) and (not defined $row[1]));
+
+        if ((not @row) or (queue_is_forbidden($row[0], $row[1], $row[2]))) {
+            return("Can't select that queue.");
+        } else {
+            update_queue_rights($row[1]);
+            $queue = $args;
+        }
     }
+
     return(undef); # no error.
 }
 
@@ -1297,20 +1307,22 @@ $commands{'SETDEFAULTQUEUE'} = sub {
 
     report_error("Please log in first"), return 1 if ($auth_uid == 0);
 
-    my $sql = "select id from $dbtable_queues where id=$qid";
-    my $sth = $link->prepare($sql);
-    if (not $sth->execute()) {
-        report_error("can't execute the query: $sth->errstr");
-        return(1);
-    }
-    my @row = $sth->fetchrow_array();
-    $sth->finish();
-    if (not @row) {
-        report_error("No such queue.");
-        return(1);
+    if ($qid != 0) {
+        my $sql = "select id from $dbtable_queues where id=$qid";
+        my $sth = $link->prepare($sql);
+        if (not $sth->execute()) {
+            report_error("can't execute the query: $sth->errstr");
+            return(1);
+        }
+        my @row = $sth->fetchrow_array();
+        $sth->finish();
+        if (not @row) {
+            report_error("No such queue.");
+            return(1);
+        }
     }
 
-    $sql = "update $dbtable_users set defaultqueue=$qid where id=$auth_uid";
+    my $sql = "update $dbtable_users set defaultqueue=$qid where id=$auth_uid";
     if (not defined $link->do($sql)) {
         report_error("Failed to set default queue: $link->errstr");
     } else {
