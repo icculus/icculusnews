@@ -32,7 +32,7 @@ use DBI;         # or this. I guess. Maybe.
 #use IO::Handle;  # blow.
 
 # Version of IcculusNews. Change this if you are forking the code.
-my $version = "2.0.0beta";
+my $version = "2.0.1";
 
 
 # Global rights constants.
@@ -974,9 +974,16 @@ $commands{'ENUM'} = sub {
 
 
 $commands{'DIGEST'} = sub {
-    my $max = shift;
-    if ((not defined $max) or ($max !~ /\A\d+\Z/)) {
-        report_error('argument must be number.');
+    my $args = shift;
+    my $max = undef;
+    my $startIndex = undef;
+
+    if (defined $args) {
+        ($startIndex, $max) = ($args =~ /\A(\d+|\-)\s*(\d+)\Z/);
+    }
+
+    if ((not defined $max) or (not defined $startIndex)) {
+        report_error('USAGE: DIGEST <startIndex|-> <msgCount>');
         return 1;
     }
 
@@ -989,6 +996,10 @@ $commands{'DIGEST'} = sub {
               " left outer join $dbtable_users as u" .
               " on i.author=u.id" .
               " where i.queueid=$queue";
+
+    if ($startIndex ne '-') {
+        $sql = $sql . " and (i.id < $startIndex)";
+    }
 
     if (!($current_queue_rights & canSeeDeleted)) {
         $sql = $sql . ' and (i.deleted=0)';
