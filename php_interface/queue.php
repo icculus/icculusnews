@@ -175,6 +175,9 @@ function output_queue_rows($sock, $showall = 0)
 
         $item_count++;
 
+        $item['author'] = htmlentities($item['author'], ENT_QUOTES);
+        $item['title'] = htmlentities($item['title'], ENT_QUOTES);
+
         $tags = $endtags = '';
         if ($item['deleted'])
         {
@@ -240,6 +243,11 @@ function output_news_queue_widgets($showall = 0)
     if (!isset($err))
         $err = news_queueinfo($sock, $q, $qinfo);
 
+    // !!! FIXME: an "htmlentities_whole_hashtable()" would be nice.
+    $qinfo['name'] = htmlentities($qinfo['name'], ENT_QUOTES);
+    $qinfo['desc'] = htmlentities($qinfo['desc'], ENT_QUOTES);
+    $qinfo['ownername'] = htmlentities($qinfo['ownername'], ENT_QUOTES);
+
 // !!! FIXME: Use some of this?
 //   $title     = $qinfo['name'];        // string of queue's name
 //   $desc      = $qinfo['desc'];        // string of queue's description.
@@ -256,7 +264,10 @@ function output_news_queue_widgets($showall = 0)
         if (count($queues) == 1)
         {
             foreach ($queues as $qid => $qname)
+            {
+                $qname = htmlentities($qname, ENT_QUOTES);
                 $queuelist = "Queue: <i>$qname</i>";
+            } // foreach
         } // if
 
         else if (count($queues) > 1)
@@ -270,6 +281,7 @@ function output_news_queue_widgets($showall = 0)
             foreach ($queues as $qid => $qname)
             {
                 $sel = (($qid == $q) ? 'selected' : '');
+                $qname = htmlentities($qname, ENT_QUOTES);
                 $queuelist .= "<option $sel value=\"$qid\">$qname</option>\n";
             } // foreach
 
@@ -504,6 +516,13 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
     global $PHP_SELF;
     global $form_postdate, $form_postanon;
 
+    $unsafe_text = $item['text'];
+    $unsafe_title = $item['title'];
+
+    $item['title'] = htmlentities($item['title'], ENT_QUOTES);
+    $item['text'] = htmlentities($item['text'], ENT_QUOTES);
+    $item['author'] = htmlentities($item['author'], ENT_QUOTES);
+
     $idarg = (isset($item['id'])) ? "&editid={$item['id']}" : '';
     $submit_button = '';
     if ($allow_submit)
@@ -529,7 +548,10 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
     if (count($queues) == 1)
     {
         foreach ($queues as $qid => $qname)
+        {
+            $qname = htmlentities($qname, ENT_QUOTES);
             $queue_form = "$qname <input type=\"hidden\" name=\"form_qid\" value=\"$qid\">";
+        } // foreach
     } // if
 
     else if (count($queues) > 1)
@@ -538,22 +560,21 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
         foreach ($queues as $qid => $qname)
         {
             $sel = (($qid == $chosen_queue) ? 'selected' : '');
+            $qname = htmlentities($qname, ENT_QUOTES);
             $queue_form .= "<option $sel value=\"$qid\">$qname</option>";
         } // foreach
         $queue_form .= '</select>';
     } // else if
 
-
     // if we're editing an existing item, show the rendered version first time.
     if ( (!isset($form_postdate)) and (isset($item['id'])) )
     {
-        // !!! FIXME: Generalize this.
+        // !!! FIXME: Generalize anonymous name.
         $u = (($form_postanon) ? 'anonymous hoser' : $item['author']);
-        preview_news_item($item['postdate'], $item['title'], $item['text'], $u);
+        preview_news_item($item['postdate'], $unsafe_title,
+                          $unsafe_text, htmlentities($u, ENT_QUOTES));
         printf("\n<hr>\n\n");
     } // if
-
-// !!! FIXME: We should escape HTML chars in $item['text'] and $item['title'].
 
     echo <<< EOF
 
