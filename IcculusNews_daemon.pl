@@ -51,6 +51,7 @@ use constant canEditAllItems           => 1 << 11;
 use constant canNotAuthorize           => 1 << 12;
 use constant canAccessAllLockedQueues  => 1 << 13;
 use constant canCreateUsers            => 1 << 14;
+use constant canMoveAllItems           => 1 << 15;
 
 # Queue rights constants.
 use constant canSeeInvisible  => 1 << 0;
@@ -63,6 +64,7 @@ use constant canEditItems     => 1 << 6;
 use constant canMakeInvisible => 1 << 7;
 use constant canLockQueue     => 1 << 8;
 use constant canAccessLocked  => 1 << 9;
+use constant canMoveItems     => 1 << 10;
 
 # Queue flags constants.
 use constant queueInvisible => 1 << 0;
@@ -448,6 +450,10 @@ sub update_queue_rights {
 
     if ($current_global_rights & canAccessAllLockedQueues) {
         $current_queue_rights |= canAccessLocked;
+    }
+
+    if ($current_global_rights & canMoveAllItems) {
+        $current_queue_rights |= canMoveItems;
     }
 }
 
@@ -1044,6 +1050,52 @@ $commands{'GET'} = sub {
     }
     $sth->finish();
 
+    return(1);
+};
+
+
+$commands{'MOVEITEM'} = sub {
+    my $args = shift;
+    my $id;
+    my $newqueue;
+
+    ($id, $newqueue) = $args =~ /\A(\d+)\s+(\d+)\s*\Z/ if (defined $args);
+    if ((not defined $id) or (not defined $newqueue)) {
+        report_error('USAGE: MOVEITEM <itemid> <newqueueid>');
+        return 1;
+    }
+
+    report_error('no queue selected.'), return 1 if $queue == 0;
+
+    if (!($current_queue_rights & canMoveItems)) {
+        report_error("You don't have permission to do that.");
+        return(1);
+    }
+
+    # !!! FIXME: User should have permission to access $newqueue.
+
+    my $link = get_database_link();
+    my $sql = "update $dbtable_items set queueid=$newqueue" .
+              " where id=$id and queueid=$queue";
+
+    my $rc = $link->do($sql);
+    if (not defined $rc) {
+        report_error("can't execute: $link->errstr");
+    } elsif ($rc > 0) {
+        report_success("Moved.");
+    } else {
+        my $reason = "no idea why";
+        $sql = "select id from $dbtable_items" .
+               " where id=$id and queueid=$queue";
+        my $sth = $link->prepare($sql);
+        $sth->execute() or die "can't execute the query: $sth->errstr";
+        my @row = $sth->fetchrow_array();
+        if (not @row) {
+            $reason = "no such item";
+        }
+        $sth->finish();
+        report_error("Failed to move: $reason.");
+    }
     return(1);
 };
 
