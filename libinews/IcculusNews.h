@@ -70,6 +70,7 @@ typedef struct {
 #define ERR_NOSUCHUSER -4			/* user does not exist */
 #define ERR_UNAUTHORIZED -5		/* I cannot allow you to do that, Dave. */
 #define ERR_SERVFAIL -6				/* internal server failure */
+#define ERR_STORYTOOLONG -7		/* story was longer than the server wanted it to be; truncated. */
 		
 // initialize the library
 extern int INEWS_init();
@@ -121,6 +122,9 @@ extern int INEWS_changeQueue(int qid);
 
 // retrieve a digest of the currently-selected queue with n articles
 extern ArticleInfo **INEWS_digest(int n);
+
+// submit an article. OMG
+extern int INEWS_submitArticle(char *title, char *body);
 
 // free the memory dynamically allocated by a call to INEWS_digest
 extern void INEWS_freeDigest(ArticleInfo **digest);
