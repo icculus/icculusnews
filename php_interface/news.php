@@ -1,4 +1,8 @@
 <?php
+
+    // CHANGE THIS TO YOUR QUEUE #.
+    $news_queue = 1;
+
     require('./IcculusNews.php');
 
 // !!! FIXME: Move this somewhere.
@@ -172,9 +176,9 @@ function output_item($news_queue, $id, $host = 'localhost', $profile = false)
     <ul>
       <?php
         if ( (isset($id)) and ($id != 0) )
-            output_item(1, $id, 'localhost', false);
+            output_item($news_queue, $id, 'localhost', false);
         else
-            output_archive(1, 'localhost', false);
+            output_archive($news_queue, 'localhost', false);
       ?>
     </ul>
 
