@@ -505,17 +505,20 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
     global $form_postdate, $form_postanon;
 
     $idarg = (isset($item['id'])) ? "&editid={$item['id']}" : '';
-    $submit = '';
+    $submit_button = '';
     if ($allow_submit)
-        $submit = '<input type="submit" name="form_submit" value="Submit">';
+        $submit_button = '<input type="submit" name="form_submit" value="Submit">';
 
     $postanon_form = '';
+    $cancel_button = '';
     if (is_logged_in($u, $p, $q))
     {
         $checked = (($form_postanon) ? 'checked' : '');
         $postanon_form = (isset($item['id'])) ?
             '' :
             "<tr><td></td><td align=\"left\"><input type=\"checkbox\" $checked name=\"form_postanon\" value=\"1\">Post anonymously</td></tr>";
+
+        $cancel_button = '<input type="submit" name="form_cancel" value="Cancel">';
     } // if
 
     $newlogin_form = (isset($item['id'])) ?
@@ -550,7 +553,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
         printf("\n<hr>\n\n");
     } // if
 
-    // !!! FIXME: We should escape HTML chars in $item['text'].
+// !!! FIXME: We should escape HTML chars in $item['text'] and $item['title'].
 
     echo <<< EOF
 
@@ -587,7 +590,8 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
         <tr>
           <td colspan="2" align="center">
             <input type="submit" name="form_preview" value="Preview">
-            $submit
+            $submit_button
+            $cancel_button
           </td>
         </tr>
       </table>
@@ -601,11 +605,17 @@ function handle_news_edit_commands()
 {
     global $daemon_host, $daemon_port;
     global $editid, $form_preview, $form_submit, $form_fromuser;
-    global $form_title, $form_text, $form_qid, $form_postanon;
+    global $form_title, $form_text, $form_qid, $form_postanon, $form_cancel;
     global $form_postdate;
 
     if (!isset($form_fromuser))  // hasn't gone through user yet.
         return(true);
+
+    if ($form_cancel)
+    {
+        output_news_queue_widgets();
+        return(false);
+    } // if
 
     $form_text     = ltrim(rtrim($form_text));
     $form_title    = ltrim(rtrim($form_title));
