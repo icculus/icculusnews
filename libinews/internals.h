@@ -103,7 +103,9 @@ Sint8 __read_line(char *str, int max_sz);
 Sint8 __write_block(char *str);
 char *__chop(char *str);
 void *__nop_thread(void *foo);
-void __free_queue_info_list_element(/*G*/IList *ptr);
+void __free_queue_info_list_element(IList *ptr);
+ArticleInfo *__get_article_cache_ptr(Uint32 qid, Uint32 aid);
 void __print_protocol_fuckery_message();
+ArticleInfo *__copy_articleinfo(ArticleInfo *ptr);
 
 #endif
