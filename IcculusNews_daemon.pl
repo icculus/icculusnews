@@ -1088,7 +1088,8 @@ $commands{'MOVEITEM'} = sub {
     report_error($err), return 1 if defined $err;
 
     my $link = get_database_link();
-    my $sql = "update $dbtable_items set queueid=$newqueue" .
+    my $sql = "update $dbtable_items" .
+              " set queueid=$newqueue, deleted=0, approved=0" .
               " where id=$id and queueid=$queue";
 
     my $rc = $link->do($sql);
