@@ -26,22 +26,22 @@
 #include <unistd.h>
 
 /* don't like gotos? deal. I don't like duplicating code. */
-#define FUNC_END(__success, __failure) { 																			\
-																				int __i; 															\
-																				end_success: 													\
-																					__i = 0; 														\
-																					__inews_errno = (__inews_errno ==   \
-																													 ERR_STORYTOOLONG) ?\ 
-																													 ERR_STORYTOOLONG : \
-																													 ERR_SUCCESS;				\
-																					goto real_end; 											\
-																				end_failure: 													\
-																					__i = 1;	 													\
-																				real_end: 														\
-																					pthread_mutex_trylock(&net_mutex);	\
-																					pthread_mutex_unlock(&net_mutex);		\
-																					return __i ? __failure : __success;	\
-								 											 }
+#define FUNC_END(__success, __failure) { 																			 \
+																				int __i; 															 \
+																				end_success: 													 \
+																					__i = 0; 														 \
+																					__inews_errno = (__inews_errno ==    \
+																													 ERR_STORYTOOLONG) ? \
+																													 ERR_STORYTOOLONG :  \
+																													 ERR_SUCCESS;				 \
+																					goto real_end; 											 \
+																				end_failure: 													 \
+																					__i = 1;	 													 \
+																				real_end: 														 \
+																					pthread_mutex_trylock(&net_mutex);	 \
+																					pthread_mutex_unlock(&net_mutex);		 \
+																					return __i ? __failure : __success;	 \
+								 											  }
 
 Sint8 INEWS_connect(const char *hostname, Uint32 port) {
     struct hostent *hostents;
@@ -334,20 +334,20 @@ ArticleInfo **INEWS_digest(int offset, int n) {
      * article ID, and that there are no gaps in the cache. */
 
     for (IList *ptr = digestcache; ptr; ptr = ilist_next(ptr)) {
-        ArticleInfo *tempptr = (ArticleInfo *)malloc(sizeof(ArticleInfo));
+        ArticleInfo *tempptr;
         ArticleLinkedListHeader *curdata = ((ArticleLinkedListHeader *)(ptr->data));
         if (curdata->qid == INEWS_getQID())
-            for (IList *aptr = curdata->head; aptr; aptr = ilist_next(aptr) && count < n) {
+            for (IList *aptr = curdata->head; aptr && (count < n); aptr = ilist_next(aptr)) {
                 if (requested_offset) {
                     if (((ArticleInfo *)(aptr->data))->aid < requested_offset) {
-                        memcpy(tempptr, aptr->data, sizeof(ArticleInfo));
+                        tempptr = __copy_articleinfo((ArticleInfo *)aptr->data);
                         retval[count++] = tempptr;
                         if (((ArticleInfo *)(aptr->data))->aid < offset) {
                             offset = ((ArticleInfo *)(aptr->data))->aid;
                         }
                     }
                 } else {
-                    memcpy(tempptr, aptr->data, sizeof(ArticleInfo));
+                    tempptr = __copy_articleinfo((ArticleInfo *)aptr->data);
                     retval[count++] = tempptr;
                     offset = ((ArticleInfo *)(aptr->data))->aid;
                 }
@@ -370,7 +370,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
 	goto end_failure;
     }
 
-    while (count <= n) {
+    while (1) {
         tempinfo = (ArticleInfo *)malloc(sizeof(ArticleInfo));
         cacheptr = (ArticleInfo *)malloc(sizeof(ArticleInfo));
 
@@ -428,12 +428,12 @@ ArticleInfo **INEWS_digest(int offset, int n) {
             IList *ptr;
             ArticleLinkedListHeader *thisqueue;
 
-            for (ptr = digestcache; ptr; ptr = ilist_next(ptr)) {
+	    for (ptr = digestcache; ptr; ptr = ilist_next(ptr)) {
                 if (((ArticleLinkedListHeader *)(ptr->data))->qid == INEWS_getQID()) break;
                 thisqueue = ((ArticleLinkedListHeader *)(ptr->data));
             }
 
-            if (!ptr) {
+	    if (!ptr) {
                 thisqueue = (ArticleLinkedListHeader *)malloc(sizeof(ArticleLinkedListHeader));
                 thisqueue->qid = INEWS_getQID();
                 thisqueue->head = NULL;
@@ -446,8 +446,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
 
     /* if we hit a premature end-of-record, then we'll need to shrink down our
      * return to prevent problems when we try to free it */
-    retval = (ArticleInfo **)realloc(retval, ((count+1) * sizeof(ArticleInfo *)));
-    retval[count] = NULL;
+    retval = (ArticleInfo **)realloc(retval, (count * sizeof(ArticleInfo *)));
 
     goto end_success;
 
@@ -558,6 +557,9 @@ Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve) {
     }
 
     artinfo = INEWS_digest(aid + 1, 1);
+
+    printf("artinfo[0] is %x\n", artinfo[0]);
+
     if (artinfo[0]->approved == approve) {
         INEWS_freeDigest(artinfo);
         goto end_success;
@@ -589,6 +591,7 @@ Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve) {
     switch(tempstring[0]) {
     case '+':
 	goto end_success;
+        __get_article_cache_ptr(INEWS_getQID(), aid)->approved = approve;
 	break;
     case '-':
 	switch (tempstring[2]) {
@@ -632,6 +635,9 @@ Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool deleteflag) {
     }
 
     artinfo = INEWS_digest(aid + 1, 1);
+
+    printf("artinfo[0] is %x\n", artinfo);
+
     if (artinfo[0]->deleted == deleteflag) {
         INEWS_freeDigest(artinfo);
         goto end_success;
@@ -658,6 +664,7 @@ Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool deleteflag) {
     switch(tempstring[0]) {
     case '+':
 	goto end_success;
+	__get_article_cache_ptr(INEWS_getQID(), aid)->deleted = deleteflag;
 	break;
     case '-':
 	switch (tempstring[2]) {
