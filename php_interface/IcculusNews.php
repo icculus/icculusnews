@@ -475,6 +475,17 @@ function news_createuser($sock, $uname, $email, $pword)
         return(substr($in, 2));
 
     return(NULL);  // no error.
-} // news_noop
+} // news_createuser
+
+
+function news_changepassword($sock, $pword)
+{
+    fputs($sock, "CHANGEPASSWORD $pword\n");
+    $in = fgets($sock, 4096);
+    if ($in{0} != '+')
+        return(substr($in, 2));
+
+    return(NULL);  // no error.
+} // news_changepassword
 
 ?>
