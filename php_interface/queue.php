@@ -312,7 +312,48 @@ echo <<< EOF
       <form method="post" action="$PHP_SELF?action=view&showall=$showall">
       <table border="1" width="100%">
         <tr>
-          <td align="center"> X </td>
+
+          <script language="javascript">
+          <!--
+              function selectAll(formObj)
+              {
+                  var checkval = false;
+                  var i;
+
+                  for (i = 0; i < formObj.length; i++)
+                  {
+                      var fldObj = formObj.elements[i];
+                      if ((fldObj.type == 'checkbox') &&
+                          (fldObj.name == 'checkeverything'))
+                      {
+                          checkval = (fldObj.checked) ? true : false;
+                          break;
+                      }
+                  }
+
+                  if (i == formObj.length)  // ???
+                      return;
+
+                  for (i = 0; i < formObj.length; i++)
+                  {
+                      var fldObj = formObj.elements[i];
+                      if (fldObj.type == 'checkbox')
+                          fldObj.checked = checkval;
+                  }
+              }
+          //-->
+          </script>
+
+          <td align="center">
+            <script language="javascript">
+            <!--
+              document.write('<input type="checkbox" name="checkeverything"');
+              document.write(' value="0" onClick="selectAll(this.form);">');
+            //-->
+            </script>
+            <noscript>X</noscript>
+          </td>
+
           <td align="center"> date </td>
           <td align="center"> title </td>
           <td align="center"> author </td>
