@@ -243,8 +243,15 @@ int INEWS_changeQueue(int qid) {
 	char tempstring[255];
 	Sint32 read_ret;
 
-	if (!serverstate.connected) return ERR_DISCONNECTED;
-	if (qid == serverstate.qid) return ERR_SUCCESS; /* no-op */
+	if (!serverstate.connected) {
+		__inews_errno = ERR_DISCONNECTED;
+		return -1;
+	}
+
+	if (qid == serverstate.qid) {
+		__inews_errno = ERR_SUCCESS;
+		return 0;
+	}
 	
 	memset(tempstring, 0, 255);
 				
@@ -258,7 +265,8 @@ int INEWS_changeQueue(int qid) {
 
 	if ((read_ret = __read_line(tempstring, 254)) < 0) {
 		g_static_mutex_unlock(&net_mutex);
-		return read_ret;
+		__inews_errno = read_ret;
+		return -1;
 	}
 
 	g_static_mutex_unlock(&net_mutex);
@@ -266,21 +274,25 @@ int INEWS_changeQueue(int qid) {
 	switch(tempstring[0]) {
 		case '+':
 			serverstate.qid = qid;
-			return ERR_SUCCESS;
+			__inews_errno = ERR_SUCCESS;
+			return -1;
 			break;
 		case '-':
 			switch (tempstring[2]) {
 				case 'c': /* "can't execute query" */
 					INEWS_disconnect();
-					return ERR_SERVFAIL;
+					__inews_errno = ERR_SERVFAIL;
+					return -1;
 					break;
 				case 'C': /* "Can't select that queue" */
-					return ERR_NOSUCHQUEUE;
+					__inews_errno = ERR_NOSUCHQUEUE;
+					return -1;
 					break;
 				default:
 					printf("Someone fucked with the protocol in INEWS_changeQueue().\n");
 					printf("Flame <vogon@icculus.org> about it.\n");
-					return ERR_GENERIC;
+					__inews_errno = ERR_GENERIC;
+					return -1;
 					break;
 			}
 	}
@@ -356,6 +368,91 @@ ArticleInfo **INEWS_digest(int n) {
 	retval = realloc(retval, (count * sizeof(ArticleInfo *)));
 	
 	return retval;
+}
+
+int INEWS_submitArticle(char *title, char *body) {
+	char tempstring[512];
+	int read_ret, maxlen;
+
+	__inews_errno = ERR_SUCCESS;
+	
+	if (!title || !strcmp(title, "")) {
+		__inews_errno = ERR_GENERIC;
+		return -1;
+	} else if (!serverstate.qid) {
+		__inews_errno = ERR_NOSUCHQUEUE;
+		return -1;
+	}
+	
+	memset(tempstring, 0, 512);
+
+	sprintf(tempstring, "POST %s\n", title);
+
+	g_static_mutex_lock(&net_mutex);
+
+	__write_block(tempstring);
+	
+	memset(tempstring, 0, 512);
+	
+	if ((read_ret = __read_line(tempstring, 511)) < 0) {
+		__inews_errno = read_ret;
+		return -1;
+	}
+
+	switch (tempstring[0]) {
+		case '+':
+			sscanf(tempstring, "+ You've got %i bytes; Go, hose.", maxlen);
+			break;
+		default:
+			printf("Someone fucked with the protocol in INEWS_submitArticle().\n");
+			printf("Flame <vogon@icculus.org> about it.\n");
+			__inews_errno = ERR_GENERIC;
+			g_static_mutex_unlock(&net_mutex);
+			return -1;
+	}
+
+	if (strlen(body) > maxlen) {
+		__inews_errno = ERR_STORYTOOLONG;
+		memset(body + maxlen, 0, strlen(body + maxlen));
+	}
+
+	__write_block(body);
+	__write_block("\n.\n");
+
+	memset(tempstring, 0, 512);
+	
+	if ((read_ret = __read_line(tempstring, 511)) < 0) {
+	  __inews_errno = read_ret;
+	  return -1;
+	}
+
+	switch (tempstring[0]) {
+		case '+': break;
+		case '-':
+			switch (tempstring[2]) {
+				case 'c': /* can't execute query */
+					__inews_errno = ERR_SERVFAIL;
+					INEWS_disconnect();
+					break;
+				default:
+					printf("Someone fucked with the protocol in INEWS_submitArticle().\n");
+					printf("Flame <vogon@icculus.org> about it.\n");
+					__inews_errno = ERR_GENERIC;
+			}
+			g_static_mutex_unlock(&net_mutex);
+			return -1;
+			break;
+		default:
+			printf("Someone fucked with the protocol in INEWS_submitArticle().\n");
+			printf("Flame <vogon@icculus.org> about it.\n");
+			__inews_errno = ERR_GENERIC;
+			g_static_mutex_unlock(&net_mutex);
+			return -1;
+	}
+			
+	g_static_mutex_unlock(&net_mutex);
+
+	return 0;
 }
 
 void INEWS_disconnect() {
