@@ -332,7 +332,7 @@ echo <<< EOF
       <table width="75%">
         <tr>
           <td align="center"><a href="$PHP_SELF?action=post">Add new items.</a></td>
-          <td align="center"><a href="{$qinfo['itemviewurl']}">View news page.</a></td>
+          <td align="center"><a href="{$qinfo['itemarchiveurl']}">View news archive.</a></td>
           <td align="center"><a href="{$qinfo['url']}">View front page.</a></td>
         </tr>
       </table>
@@ -742,6 +742,10 @@ function do_login($next_action = 'view')
         // !!! FIXME: tweak get_connected() so we can use it here.
         $err = news_login($sock, $daemon_host, $daemon_port,
                           $form_user, $form_pass);
+
+        if (!$err)
+            $err = news_get_userinfo($sock, $uid, $qid);
+
         news_logout($sock);
 
         if ($err)
@@ -753,7 +757,7 @@ function do_login($next_action = 'view')
         {
             $iccnews_username = $form_user;
             $iccnews_userpass = $form_pass;
-            $iccnews_userqueue = 1;  // !!! FIXME: ?
+            $iccnews_userqueue = $qid;
             if ( (isset($form_next)) && (isset($actions[$form_next])) )
                 $actions[$form_next]();
         } // else

@@ -1,5 +1,58 @@
 <?php
 
+function news_login(&$sock, $host, $port = 263, $uname = NULL,
+                    $pass = NULL, $queue = NULL)
+{
+    $sock = fsockopen($host, $port);
+    if ($sock == false)
+    {
+        $sock = NULL;  // Is there a difference?
+        return("failed to connect to daemon at all");
+    } // if
+
+    $in = fgets($sock, 4096);   // get welcome message.
+    if ($in{0} != '+')
+    {
+        fclose($sock);
+        $sock = NULL;
+        return(substr($in, 2));
+    } // if
+
+    $authstr = 'AUTH ' . (isset($uname) ? "\"$uname\" \"$pass\"" : '-');
+    fputs($sock, "$authstr\n");
+    $in = fgets($sock, 4096);
+    if ($in{0} != '+')
+    {
+        news_logout($sock);
+        return(substr($in, 2));
+    } // if
+
+    if (isset($queue))
+    {
+        $rc = news_change_queue($sock, $queue);
+        if (isset($rc))
+        {
+            news_logout($sock);
+            return($rc);
+        } // if
+    } // if
+
+    return(NULL);  // no error. Socket is usable.
+} // news_login
+
+
+function news_logout(&$sock)
+{
+    if (isset($sock))
+    {
+        fputs($sock, "QUIT\n");
+        fgets($sock, 4096);
+        fclose($sock);
+        $sock = NULL;
+    } // if
+} // news_logout
+
+
 //
 // returns an array of names:
 //
@@ -52,58 +105,28 @@ function news_change_queue($sock, $queue)
 } // news_change_queue
 
 
-function news_login(&$sock, $host, $port = 263, $uname = NULL,
-                    $pass = NULL, $queue = NULL)
+function news_get_userinfo($sock, &$uid, &$qid)
 {
-    $sock = fsockopen($host, $port);
-    if ($sock == false)
-    {
-        $sock = NULL;  // Is there a difference?
-        return("failed to connect to daemon at all");
-    } // if
+    if (!isset($sock))
+        return('bogus socket');
 
-    //set_file_buffer($sock, 0);
-    $in = fgets($sock, 4096);   // get welcome message.
-    if ($in{0} != '+')
-    {
-        fclose($sock);
-        $sock = NULL;
-        return(substr($in, 2));
-    } // if
+    $uid = $qid = NULL;
 
-    $authstr = 'AUTH ' . (isset($uname) ? "\"$uname\" \"$pass\"" : '-');
-    fputs($sock, "$authstr\n");
+    fputs($sock, "USERINFO\n");
     $in = fgets($sock, 4096);
     if ($in{0} != '+')
-    {
-        news_logout($sock);
         return(substr($in, 2));
-    } // if
 
-    if (isset($queue))
-    {
-        $rc = news_change_queue($sock, $queue);
-        if (isset($rc))
-        {
-            news_logout($sock);
-            return($rc);
-        } // if
-    } // if
+    $sep = strpos($in, ',');
+    if ($sep === false)  // not found?!
+        return("got unexpected result from daemon");
 
-    return(NULL);  // no error. Socket is usable.
-} // news_login
+    $uid = trim(substr($in, 2, $sep - 2));
+    $qid = trim(substr($in, $sep + 2));
 
+    return(NULL);  // no error.
+} // news_get_userinfo
 
-function news_logout(&$sock)
-{
-    if (isset($sock))
-    {
-        fputs($sock, "QUIT\n");
-        fgets($sock, 4096);
-        fclose($sock);
-        $sock = NULL;
-    } // if
-} // news_logout
 
 
 //
@@ -217,7 +240,8 @@ function news_get($sock, $id, &$item)
 //   $desc      = $retval['desc'];        // string of queue's description.
 //   $url       = $retval['url'];         // URL associated with queue.
 //   $rdfurl    = $retval['rdfurl'];      // URL of queue's RDF file.
-//   $url       = $retval['itemviewurl']; // URL where items are viewed.
+//   $arcurl    = $retval['itemarchiveurl']; // URL of news archives.
+//   $itemurl   = $retval['itemviewurl']; // URL where items are viewed.
 //   $created   = $retval['created'];     // string of time/date of creation.
 //   $ownerid   = $retval['ownerid'];     // owner's ID number.
 //   $ownername = $retval['owner'];       // string of owner's name.
@@ -232,6 +256,7 @@ function news_queueinfo($sock, $id, &$info)
     $retval = array();
     $retval['name'] = rtrim(fgets($sock, 4096));
     $retval['desc'] = rtrim(fgets($sock, 4096));
+    $retval['itemarchiveurl'] = rtrim(fgets($sock, 4096));
     $retval['itemviewurl'] = rtrim(fgets($sock, 4096));
     $retval['url'] = rtrim(fgets($sock, 4096));
     $retval['rdfurl'] = rtrim(fgets($sock, 4096));

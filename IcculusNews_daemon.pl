@@ -185,6 +185,12 @@ my $default_queue_owner_rights = canSeeInvisible | canSeeDeleted |
 #  to make queues globally invisible until the creator toggles them.
 my $default_queue_flags = 0;
 
+# Newly created users are assigned to this queue by default. The first queue
+#  created is 1, so that's probably a good one, unless you've got some other
+#  queue you prefer. Users can change to a different queue via the QUEUE
+#  command, and assign a new default queue with the SETDEFAULTQUEUE command.
+my $default_queue = 1;
+
 # This is the host to connect to for database access.
 my $dbhost = 'localhost';
 
@@ -425,7 +431,7 @@ sub generate_rdf {
     my $link = get_database_link();
     my @row = undef;
     my $sth = undef;
-    $sql = "select name, description, itemviewurl, rdffile," .
+    $sql = "select name, description, itemarchiveurl, itemviewurl, rdffile," .
            " siteurl, rdfurl, rdfimageurl, rdfitemcount" .
            " from $dbtable_queues where id=$qid";
     $sth = $link->prepare($sql);
@@ -436,12 +442,13 @@ sub generate_rdf {
 
     my $queuename   = $row[0];
     my $queuedesc   = $row[1];
-    my $itemviewurl = $row[2];
-    my $rdffile     = $row[3];
-    my $siteurl     = $row[4];
-    my $rdfurl      = $row[5];
-    my $rdfimgurl   = $row[6];
-    $max = $row[7] if not defined $max;
+    my $itemarcurl  = $row[2];
+    my $itemviewurl = $row[3];
+    my $rdffile     = $row[4];
+    my $siteurl     = $row[5];
+    my $rdfurl      = $row[6];
+    my $rdfimgurl   = $row[7];
+    $max = $row[8] if not defined $max;
 
     $sql = "select t1.author, t1.id, t1.title, t1.postdate, t2.name," .
            " t1.ip, t1.approved, t1.deleted" .
@@ -464,6 +471,7 @@ sub generate_rdf {
   <channel rdf:about="$rdfurl">
     <title>$queuename</title>
     <link>$siteurl</link>
+    <archives>$itemarcurl</archives>
     <description>$queuedesc</description>
   </channel>
 
@@ -511,7 +519,7 @@ __EOF__
 }
 
 
-sub update_rdf() {
+sub update_rdf {
     my ($err, $rdf, $filename) = generate_rdf();
     do_log(syslogError, "RDF build failed: $err"), return 0 if (defined $err);
 
@@ -653,6 +661,32 @@ sub queue_is_forbidden {
 }
 
 
+sub change_queue {
+    my $args = shift;
+    my $link = get_database_link();
+    my $sql = "select q.flags, r.rights, q.owner" .
+              " from $dbtable_queues as q" .
+              " left outer join $dbtable_queue_rights as r" .
+              " on r.qid=q.id and r.uid=$auth_uid" .
+              " where q.id=$args";
+
+    my $sth = $link->prepare($sql);
+    $sth->execute() or report_fatal("can't execute query: $sth->errstr");
+    my @row = $sth->fetchrow_array();
+    $sth->finish();
+
+    $row[1] = 0 if ((@row) and (not defined $row[1]));
+
+    if ((not @row) or (queue_is_forbidden($row[0], $row[1], $row[2]))) {
+        return("Can't select that queue.");
+    } else {
+        update_queue_rights($row[1]);
+        $queue = $args;
+    }
+    return(undef); # no error.
+}
+
+
 # The actual commands the daemon responds to...
 
 $commands{'AUTH'} = sub {
@@ -680,8 +714,8 @@ $commands{'AUTH'} = sub {
         my $link = get_database_link();
 
         my $u = $link->quote($user);
-        my $sql = "select id, password, globalrights from $dbtable_users" .
-                  " where name=$u";
+        my $sql = "select id, password, globalrights, defaultqueue" .
+                  " from $dbtable_users where name=$u";
         my $sth = $link->prepare($sql);
         $sth->execute() or report_fatal("can't execute query: $sth->errstr");
 
@@ -701,13 +735,23 @@ $commands{'AUTH'} = sub {
 
         $auth_uid = $row[0];
         $current_global_rights = $row[2];
-        update_queue_rights();
+        my $err = change_queue($row[3]);
+        if (defined $err) {
+            report_error("Failed to select default queue: $err");
+            return(1);
+        }
     }
 
     do_log(syslogAuth, "IcculusNews auth: $authuser (id $auth_uid)");
 
-    report_success($auth_uid);
+    report_success("$auth_uid, $queue");
     return(1);
+};
+
+
+$commands{'USERINFO'} = sub {
+    report_success("$auth_uid, $queue");
+    return 1;
 };
 
 
@@ -719,7 +763,7 @@ $commands{'QUEUEINFO'} = sub {
     }
 
     my $link = get_database_link();
-    my $sql = "select q.name, q.description," .
+    my $sql = "select q.name, q.description, q.itemarchiveurl," .
               " q.itemviewurl, q.siteurl, q.rdfurl," .
               " q.created, q.owner, u.name, q.flags, r.rights" .
               " from $dbtable_queues as q, $dbtable_users as u" .
@@ -731,8 +775,8 @@ $commands{'QUEUEINFO'} = sub {
     my @row = $sth->fetchrow_array();
     $sth->finish();
 
-    $row[9] = 0 if ((@row) and (not defined $row[1]));
-    if ((not @row) or (queue_is_forbidden($row[8], $row[9], $row[6]))) {
+    $row[10] = 0 if ((@row) and (not defined $row[1]));
+    if ((not @row) or (queue_is_forbidden($row[9], $row[10], $row[7]))) {
         report_error("Can't select that queue.");
         return 1;
     }
@@ -746,6 +790,7 @@ $commands{'QUEUEINFO'} = sub {
     print("$row[5]\012");
     print("$row[6]\012");
     print("$row[7]\012");
+    print("$row[8]\012");
     return 1;
 };
 
@@ -755,25 +800,10 @@ $commands{'QUEUE'} = sub {
     if ((not defined $args) or ($args !~ /\A\d+\Z/)) {
         report_error("Argument must be a number.");
     } else {
-        my $link = get_database_link();
-        my $sql = "select q.flags, r.rights, q.owner" .
-                  " from $dbtable_queues as q" .
-                  " left outer join $dbtable_queue_rights as r" .
-                  " on r.qid=q.id and r.uid=$auth_uid" .
-                  " where q.id=$args";
-
-        my $sth = $link->prepare($sql);
-        $sth->execute() or report_fatal("can't execute query: $sth->errstr");
-        my @row = $sth->fetchrow_array();
-        $sth->finish();
-
-        $row[1] = 0 if ((@row) and (not defined $row[1]));
-
-        if ((not @row) or (queue_is_forbidden($row[0], $row[1], $row[2]))) {
-            report_error("Can't select that queue.");
+        my $err = change_queue($args);
+        if (defined $err) {
+            report_error($err);
         } else {
-            update_queue_rights($row[1]);
-            $queue = $args;
             report_success("Queue changed");
         }
     }
@@ -1112,6 +1142,7 @@ $commands{'CREATEUSER'} = sub {
     #    report_error('Username may only contain letters and numbers');
     #    return(1);
     #}
+
     if ($uname =~ /[%_<>&\t#]/) {
         report_error('Username has illegal characters');
         return(1);
@@ -1121,7 +1152,6 @@ $commands{'CREATEUSER'} = sub {
 
     $uname = $link->quote($uname);
     my $sql = "select id from $dbtable_users where name like $uname";
-
     my $sth = $link->prepare($sql);
     if (not $sth->execute()) {
         report_error("can't execute the query: $sth->errstr");
@@ -1137,8 +1167,9 @@ $commands{'CREATEUSER'} = sub {
     $email = $link->quote($email);
     $pword = $link->quote(crypt($pword, new_crypt_salt()));
     $sql = "insert into $dbtable_users" .
-           " (name, password, globalrights, email, created)" .
-           " values ($uname, $pword, $default_user_rights, $email, NOW())";
+           " (name, password, globalrights, defaultqueue, email, created)" .
+           " values ($uname, $pword, $default_user_rights," .
+           " $default_queue, $email, NOW())";
     if (not $link->do($sql)) {
         report_error("can't add user: $link->errstr");
     } else {
@@ -1251,6 +1282,39 @@ $commands{'CHANGEPASSWORD'} = sub {
         report_error("can't change password: $link->errstr");
     } else {
         report_success("password changed.");
+    }
+
+    return(1);
+};
+
+
+$commands{'SETDEFAULTQUEUE'} = sub {
+    my $qid = shift;
+    if ((not defined $qid) or ($qid !~ /\A\d+\Z/)) {
+        report_error('argument must be number.');
+        return(1);
+    }
+
+    report_error("Please log in first"), return 1 if ($auth_uid == 0);
+
+    my $sql = "select id from $dbtable_queues where id=$qid";
+    my $sth = $link->prepare($sql);
+    if (not $sth->execute()) {
+        report_error("can't execute the query: $sth->errstr");
+        return(1);
+    }
+    my @row = $sth->fetchrow_array();
+    $sth->finish();
+    if (not @row) {
+        report_error("No such queue.");
+        return(1);
+    }
+
+    $sql = "update $dbtable_users set defaultqueue=$qid where id=$auth_uid";
+    if (not defined $link->do($sql)) {
+        report_error("Failed to set default queue: $link->errstr");
+    } else {
+        report_success("default queue changed.");
     }
 
     return(1);
