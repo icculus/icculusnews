@@ -161,6 +161,7 @@ $sql = "create table $dbtable_users (" .
        " name varchar(32) not null," .
        " password varchar(32) not null," .
        " email varchar(64) not null," .
+       " defaultqueue int unsigned not null," .
        " globalrights int unsigned not null," .
        " created datetime not null," .
        " primary key (id)" .
