@@ -1,0 +1,6 @@
+- User interface to CREATEUSER.
+- User interface to CHANGEPASSWORD (including emailing forgotten passwords).
+- Have IcculusNews_post.pl prompt for a password.
+- CREATEQUEUE.
+- Shitloads more.
+
