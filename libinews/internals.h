@@ -23,6 +23,7 @@
 /* we use glib, because I'm too lazy to write 
  * string-mangling functions myself */
 #include <glib-2.0/glib.h>
+#include "IList.h"
 
 #define INEWS_MAJOR __INEWS_LINKTIME_MAJOR
 #define INEWS_MINOR __INEWS_LINKTIME_MINOR
@@ -42,7 +43,8 @@ typedef struct {
 } ServerState;
 
 ServerState serverstate;
-GList *qinfoptr;
+/*GList *qinfoptr;*/
+IList *qinfoptr;
 int fd;
 struct sockaddr_in sa;
 size_t sa_len;
@@ -55,16 +57,16 @@ pthread_t nop_thread;
 Sint8 INEWS_init();
 void INEWS_deinit();
 
-INEWS_Version *INEWS_getVersion();
-char *INEWS_getServerVersion();
-char *INEWS_getHost();
-Uint16 INEWS_getPort();
-const char *INEWS_getUserName();
-Uint16 INEWS_getUID();
-Uint16 INEWS_getQID();
+const INEWS_Version *INEWS_getVersion();
+inline const char *INEWS_getServerVersion();
+inline const char *INEWS_getHost();
+inline Uint16 INEWS_getPort();
+inline const char *INEWS_getUserName();
+inline Uint16 INEWS_getUID();
+inline Uint16 INEWS_getQID();
 QueueInfo *INEWS_getQueueInfo(int qid);
 QueueInfo **INEWS_getAllQueuesInfo();
-Sint8 INEWS_getLastError();
+inline Sint8 INEWS_getLastError();
 
 void INEWS_freeDigest(ArticleInfo **digest);
 void INEWS_freeQueuesInfo(QueueInfo **qinfo);
@@ -75,13 +77,15 @@ Sint8 INEWS_retrQueueInfo();
 Sint8 INEWS_changeQueue(int qid);
 ArticleInfo **INEWS_digest(int n);
 Sint8 INEWS_submitArticle(char *title, char *body);
+Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve);
+Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool delete);
 void INEWS_disconnect();
 
 Sint8 __read_line(char *str, int max_sz);
 Sint8 __write_block(char *str);
 char *__chop(char *str);
 void *__nop_thread(void *foo);
-void __free_queue_info_list_element(GList *ptr);
+void __free_queue_info_list_element(/*G*/IList *ptr);
 void __print_protocol_fuckery_message();
 
 #endif

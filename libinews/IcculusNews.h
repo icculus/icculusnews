@@ -86,25 +86,25 @@ extern Sint8 INEWS_init();
 extern void INEWS_deinit();
 
 /* get the version of the library used at runtime */
-extern INEWS_Version *INEWS_getVersion();
+extern const INEWS_Version *INEWS_getVersion();
 
 /* get the version of the server daemon */
-extern char *INEWS_getServerVersion();
+extern inline const char *INEWS_getServerVersion();
 
 /* get the current remote host */
-extern char *INEWS_getHost();
+extern inline const char *INEWS_getHost();
 
 /* get the current remote port */
-extern Uint16 INEWS_getPort();
+extern inline Uint16 INEWS_getPort();
 
 /* get the current IcculusNews username */
-extern const char *INEWS_getUserName();
+extern inline const char *INEWS_getUserName();
 
 /* get the current IcculusNews user ID */
-extern Uint16 INEWS_getUID();
+extern inline Uint16 INEWS_getUID();
 
 /* get the currently-selected IcculusNews queue ID */
-extern Uint16 INEWS_getQID();
+extern inline Uint16 INEWS_getQID();
 
 /* get detailed information on a chosen queue */
 extern QueueInfo *INEWS_getQueueInfo(int qid);
@@ -113,7 +113,7 @@ extern QueueInfo *INEWS_getQueueInfo(int qid);
 extern QueueInfo **INEWS_getAllQueuesInfo();
 
 /* get the error number of the last error to occur */
-extern Sint8 INEWS_getLastError();
+extern inline Sint8 INEWS_getLastError();
 
 /* connect to an IcculusNews server */
 extern Sint8 INEWS_connect(const char *hostname, Uint32 port);
@@ -132,6 +132,12 @@ extern ArticleInfo **INEWS_digest(int n);
 
 /* submit an article. OMG */
 extern Sint8 INEWS_submitArticle(char *title, char *body);
+
+/* change the approval status of article aid */
+Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve);
+
+/* change the deletion status of article aid */
+Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool delete);
 
 /* free the memory dynamically allocated by a call to INEWS_digest */
 extern void INEWS_freeDigest(ArticleInfo **digest);
