@@ -16,13 +16,23 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#define _XOPEN_SOURCE
-#include <time.h>
+/* don't like gotos? deal. I don't like duplicating code. */
+#define FUNC_END(__success, __failure) { 																			\
+																				int __i; 															\
+																				end_success: 													\
+																					__i = 0; 														\
+																					__inews_errno = ERR_SUCCESS;				\
+																					goto real_end; 											\
+																				end_failure: 													\
+																					__i = 1;	 													\
+																				real_end: 														\
+																					g_static_mutex_trylock(&net_mutex); \
+																					g_static_mutex_unlock(&net_mutex); 	\
+																					return __i ? __failure : __success;	\
+								 											 }
 
 int INEWS_connect(const char *hostname, Uint32 port) {
 	struct hostent *hostents;
-	Uint32 err;
-	Sint32 read_ret;
 	
 	g_static_mutex_lock(&net_mutex);
 	
@@ -49,7 +59,9 @@ int INEWS_connect(const char *hostname, Uint32 port) {
 			default:
 				printf("unknown error.\n");
 		}
-		return ERR_GENERIC;
+
+		__inews_errno = ERR_GENERIC;
+		goto end_failure;
 	}
 
 	sa_len = sizeof(sa);
@@ -61,12 +73,16 @@ int INEWS_connect(const char *hostname, Uint32 port) {
 	
 	if (!(fd = socket(PF_INET, SOCK_STREAM, 0))) {
 		printf("Error returned from socket(): %s\n", strerror(errno));
-		return ERR_GENERIC;
+
+		__inews_errno = ERR_GENERIC;
+		goto end_failure;
 	}
 
 	if (connect(fd, (struct sockaddr *)&sa, sa_len) != 0) {
 		printf("Error returned from connect(): %s\n", strerror(errno));
-		return ERR_GENERIC;
+
+		__inews_errno = ERR_GENERIC;
+		goto end_failure;
 	}
 
 	fcntl(fd, F_SETFL, (fcntl(fd, F_GETFL) | O_NONBLOCK));
@@ -76,29 +92,31 @@ int INEWS_connect(const char *hostname, Uint32 port) {
 
 		memset(welcome_msg, 0, 80);
 	
-		if ((read_ret = __read_line(welcome_msg, 80)) == 0) {
+		if (__read_line(welcome_msg, 80) == 0) {
 			char *offset;
 			
 			if ((offset = strstr((char *)welcome_msg, "daemon")) != NULL)
 				serverstate.verstring = g_strdup(offset + 7);
 		} else {
-			g_static_mutex_unlock(&net_mutex);
-			return read_ret;
+			goto end_failure;
 		}
 	}
 	
-	g_static_mutex_unlock(&net_mutex);
-
 	serverstate.connected = TRUE;
 
-	return ERR_SUCCESS;
+	goto end_success;
+
+	FUNC_END(0, -1)
 }
 
 int INEWS_auth(const char *username, const char *password) {
 	char authstring[255];
 	char respstring[81];
 
-	if (!serverstate.connected) return ERR_DISCONNECTED;
+	if (!serverstate.connected) {
+		__inews_errno = ERR_DISCONNECTED;
+		goto end_failure;
+	}
 	
 	memset(authstring, 0, 255);
 	memset(respstring, 0, 81);
@@ -113,46 +131,50 @@ int INEWS_auth(const char *username, const char *password) {
 
 	__write_block((char *)authstring);
 
-	if (__read_line((char *)respstring, 80) == -2) {
-		g_static_mutex_unlock(&net_mutex);
-		return ERR_DISCONNECTED;
+	if (__read_line((char *)respstring, 80) < 0) {
+		goto end_failure;
 	}
 
 	g_static_mutex_unlock(&net_mutex);	
 	
 	switch(respstring[0]) {
 		case '+':
-			printf("Authorization successful.\n");
 			serverstate.username = username ? g_strdup(username) : g_strdup("anonymous");
 			serverstate.password = password ? g_strdup(password) : NULL;
 			serverstate.uid = atoi(respstring + 2);
 			serverstate.qid = atoi(strchr(respstring, ',') + 1);
 			keep_nopping = 1;
 			nop_thread_ptr = g_thread_create(__nop_thread, NULL, TRUE, NULL);
-			return ERR_SUCCESS;
+			goto end_success;
 			break;
 		default:
 			switch(respstring[2]) {
 				case 'c': /* "can't execute query" */
 					INEWS_disconnect();
-					return ERR_SERVFAIL;
+					__inews_errno = ERR_SERVFAIL;
+					goto end_failure;
 					break;
 				case 'A': /* "Authorization for <foo> failed." */
-					return ERR_NOSUCHUSER;
+					__inews_errno = ERR_NOSUCHUSER;
+					goto end_failure;
 					break;
 				case 'T': /* "This account has been disabled." */
-					return ERR_UNAUTHORIZED;
+					__inews_errno = ERR_UNAUTHORIZED;
+					goto end_failure;
 					break;
 				case 'F': /* "Failed to set default queue" */
-					return ERR_NOSUCHQUEUE;
+					__inews_errno = ERR_NOSUCHQUEUE;
+					goto end_failure;
 					break;
 				default:
-					printf("Someone fucked with the protocol in INEWS_auth().\n");
-					printf("Flame <vogon@icculus.org> about it.\n");
-					return ERR_GENERIC;
+					__print_protocol_fuckery_message();
+					__inews_errno = ERR_GENERIC;
+					goto end_failure;
 					break;
 			}
 	}
+
+	FUNC_END(0, -1)
 }
 
 int INEWS_retrQueueInfo() {
@@ -160,23 +182,20 @@ int INEWS_retrQueueInfo() {
 	char temp_data[256];
 	GList *temp_iter;
 	Uint8 record_pos = 0;
-	Sint32 read_ret;
 
 	if (!serverstate.connected) return ERR_DISCONNECTED;
 	
 	g_static_mutex_lock(&net_mutex);
 
 	__write_block("ENUM queues\n");
-	if ((read_ret = __read_line(temp_data, 255)) < 0) { /* to get rid of "+ Here comes..." */
-		g_static_mutex_unlock(&net_mutex);
-		return read_ret;
+	if (__read_line(temp_data, 255) < 0) { /* to get rid of "+ Here comes..." */
+		goto end_failure;
 	}
 					
 	while (1) {
 		memset(temp_data, 0, 256);
-		if ((read_ret = __read_line(temp_data, 255)) < 0) {
-			g_static_mutex_unlock(&net_mutex);
-			return read_ret;
+		if (__read_line(temp_data, 255) < 0) {
+			goto end_failure;
 		}
 
 		if (!strcmp(temp_data, ".")) break;
@@ -198,13 +217,12 @@ int INEWS_retrQueueInfo() {
 		QueueInfo *temp_qinfo = (QueueInfo *)temp_iter->data;
 		memset(temp_data, 0, 256);
 		
-		sprintf(temp_data, "QUEUEINFO %hhi\n", temp_qinfo->qid);
+		sprintf(temp_data, "QUEUEINFO %i\n", temp_qinfo->qid);
 
 		__write_block(temp_data);
 		
-		if ((read_ret = __read_line(temp_data, 255)) < 0) {
-			g_static_mutex_unlock(&net_mutex);
-			return read_ret;
+		if (__read_line(temp_data, 255) < 0) {
+			goto end_failure;
 		}
 
 		record_pos = 0;
@@ -212,9 +230,8 @@ int INEWS_retrQueueInfo() {
 		while (record_pos < 9) {
 			memset(temp_data, 0, 256);
 			
-			if ((read_ret = __read_line(temp_data, 255)) < 0) {
-				g_static_mutex_unlock(&net_mutex);
-				return read_ret;
+			if (__read_line(temp_data, 255) < 0) {
+				goto end_failure;
 			}
 			
 			switch (++record_pos) {
@@ -236,21 +253,21 @@ int INEWS_retrQueueInfo() {
 		temp_iter = g_list_next(temp_iter);
 	}
 
-	g_static_mutex_unlock(&net_mutex);
+	goto end_success;
+
+	FUNC_END(0, -1)
 }
 
 int INEWS_changeQueue(int qid) {
 	char tempstring[255];
-	Sint32 read_ret;
 
 	if (!serverstate.connected) {
 		__inews_errno = ERR_DISCONNECTED;
-		return -1;
+		goto end_failure;
 	}
 
 	if (qid == serverstate.qid) {
-		__inews_errno = ERR_SUCCESS;
-		return 0;
+		goto end_success;
 	}
 	
 	memset(tempstring, 0, 255);
@@ -263,10 +280,8 @@ int INEWS_changeQueue(int qid) {
 
 	memset(tempstring, 0, 255);
 
-	if ((read_ret = __read_line(tempstring, 254)) < 0) {
-		g_static_mutex_unlock(&net_mutex);
-		__inews_errno = read_ret;
-		return -1;
+	if (__read_line(tempstring, 254) < 0) {
+		goto end_failure;
 	}
 
 	g_static_mutex_unlock(&net_mutex);
@@ -274,40 +289,38 @@ int INEWS_changeQueue(int qid) {
 	switch(tempstring[0]) {
 		case '+':
 			serverstate.qid = qid;
-			__inews_errno = ERR_SUCCESS;
-			return -1;
+			goto end_success;
 			break;
 		case '-':
 			switch (tempstring[2]) {
 				case 'c': /* "can't execute query" */
 					INEWS_disconnect();
 					__inews_errno = ERR_SERVFAIL;
-					return -1;
 					break;
 				case 'C': /* "Can't select that queue" */
 					__inews_errno = ERR_NOSUCHQUEUE;
-					return -1;
 					break;
 				default:
-					printf("Someone fucked with the protocol in INEWS_changeQueue().\n");
-					printf("Flame <vogon@icculus.org> about it.\n");
+					__print_protocol_fuckery_message();
 					__inews_errno = ERR_GENERIC;
-					return -1;
 					break;
 			}
+			goto end_failure;
 	}
+
+	FUNC_END(0, 1)
 }
 
 ArticleInfo **INEWS_digest(int n) {
 	char tempstring[256];
 	ArticleInfo **retval;
 	ArticleInfo *tempinfo;
-	int read_ret, record_pos, count = 0;
+	int record_pos, count = 0;
 	bool eor = FALSE;
 	
 	if (!serverstate.connected) {
 		__inews_errno = ERR_DISCONNECTED;
-		return NULL;
+		goto end_failure;
 	}
 	
 	retval = (ArticleInfo **)malloc(n * sizeof(ArticleInfo *));
@@ -318,10 +331,8 @@ ArticleInfo **INEWS_digest(int n) {
 
 	__write_block(tempstring);
 	
-	if ((read_ret = __read_line(tempstring, 255)) < 0) { /* to get rid of "+ Here comes..." */
-	  g_static_mutex_unlock(&net_mutex);
-	  __inews_errno = read_ret;
-		return NULL;
+	if (__read_line(tempstring, 255) < 0) { /* to get rid of "+ Here comes..." */
+		goto end_failure;
 	}
 	
 	while (count < n) {
@@ -332,10 +343,8 @@ ArticleInfo **INEWS_digest(int n) {
 		while (record_pos < 8) {
 			memset(tempstring, 0, 256);
 						
-			if ((read_ret = __read_line(tempstring, 255)) < 0) {
-				g_static_mutex_unlock(&net_mutex);
-				__inews_errno = read_ret;
-				return NULL;
+			if (__read_line(tempstring, 255) < 0) {
+				goto end_failure;
 			}
 
 			if (!strcmp(tempstring, ".")) {
@@ -361,18 +370,18 @@ ArticleInfo **INEWS_digest(int n) {
 		retval[count++] = tempinfo;
 	}
 	
-	g_static_mutex_unlock(&net_mutex);
-
 	/* if we hit a premature end-of-record, then we'll need to shrink down our 
 	 * return to prevent problems when we try to free it */
-	retval = realloc(retval, (count * sizeof(ArticleInfo *)));
+	retval = (ArticleInfo **)realloc(retval, (count * sizeof(ArticleInfo *)));
 	
-	return retval;
+	goto end_success;
+	
+	FUNC_END(retval, NULL)
 }
 
 int INEWS_submitArticle(char *title, char *body) {
 	char tempstring[512];
-	int read_ret, maxlen;
+	Uint32 maxlen;
 
 	__inews_errno = ERR_SUCCESS;
 	
@@ -394,21 +403,23 @@ int INEWS_submitArticle(char *title, char *body) {
 	
 	memset(tempstring, 0, 512);
 	
-	if ((read_ret = __read_line(tempstring, 511)) < 0) {
-		__inews_errno = read_ret;
-		return -1;
+	if (__read_line(tempstring, 511) < 0) {
+		goto end_failure;
 	}
 
 	switch (tempstring[0]) {
 		case '+':
-			sscanf(tempstring, "+ You've got %i bytes; Go, hose.", maxlen);
+/* as of glibc 2.2.5 trunk, the sscanf() line segfaults.  gg, glibc. */
+#ifndef I_LIKE_BROKEN_SSCANF_AND_I_CANNOT_LIE
+			sscanf(tempstring, "+ You've got %ui bytes; Go, hose.", &maxlen);
+#else
+			maxlen = strtol(strstr(tempstring, "got") + 4, NULL, 10);
+#endif
 			break;
 		default:
-			printf("Someone fucked with the protocol in INEWS_submitArticle().\n");
-			printf("Flame <vogon@icculus.org> about it.\n");
+			__print_protocol_fuckery_message();
 			__inews_errno = ERR_GENERIC;
-			g_static_mutex_unlock(&net_mutex);
-			return -1;
+			goto end_failure;
 	}
 
 	if (strlen(body) > maxlen) {
@@ -421,9 +432,8 @@ int INEWS_submitArticle(char *title, char *body) {
 
 	memset(tempstring, 0, 512);
 	
-	if ((read_ret = __read_line(tempstring, 511)) < 0) {
-	  __inews_errno = read_ret;
-	  return -1;
+	if (__read_line(tempstring, 511) < 0) {
+		goto end_failure;
 	}
 
 	switch (tempstring[0]) {
@@ -435,24 +445,19 @@ int INEWS_submitArticle(char *title, char *body) {
 					INEWS_disconnect();
 					break;
 				default:
-					printf("Someone fucked with the protocol in INEWS_submitArticle().\n");
-					printf("Flame <vogon@icculus.org> about it.\n");
+					__print_protocol_fuckery_message();
 					__inews_errno = ERR_GENERIC;
 			}
-			g_static_mutex_unlock(&net_mutex);
-			return -1;
+			goto end_failure;
 			break;
 		default:
-			printf("Someone fucked with the protocol in INEWS_submitArticle().\n");
-			printf("Flame <vogon@icculus.org> about it.\n");
-			__inews_errno = ERR_GENERIC;
-			g_static_mutex_unlock(&net_mutex);
-			return -1;
+			__print_protocol_fuckery_message();
+			goto end_failure;
 	}
 			
-	g_static_mutex_unlock(&net_mutex);
-
-	return 0;
+	goto end_success;
+	
+	FUNC_END(0, -1);
 }
 
 void INEWS_disconnect() {
@@ -466,7 +471,7 @@ void INEWS_disconnect() {
 	close(fd);
 	serverstate.connected = FALSE;
 
-	// clean up dynamically-allocated crap.
+	/* clean up dynamically-allocated crap. */
 	free(serverstate.hostname);
 	free(serverstate.username);
 	free(serverstate.password);
@@ -491,10 +496,12 @@ int __read_line(char *str, int max_sz) {
 		count = read(fd, (str + len), 1);
 		if (count < 0 && (errno != EAGAIN && errno != EINTR)) {
 			printf("Error from read(): %s\n", strerror(errno));
+			__inews_errno = ERR_GENERIC;
 			return ERR_GENERIC;
 		} else if (count == 0) {
 			printf("Connection reset by peer\n");
 			INEWS_disconnect();
+			__inews_errno = ERR_DISCONNECTED;
 			return ERR_DISCONNECTED;
 		} else if (count > 0) {
 			len += count;
@@ -510,7 +517,7 @@ int __read_line(char *str, int max_sz) {
 int __write_block(char *str) {
 	ssize_t count = 0, len = 0;
 	
-	while (len < strlen(str)) {
+	while (len < (ssize_t)strlen(str)) {
 		count = write(fd, (str + len), (strlen(str) - len));
 		if (count < 0 && (errno != EAGAIN && errno != EINTR)) {
 			printf("Error from write(): %s\n", strerror(errno));
@@ -526,6 +533,8 @@ int __write_block(char *str) {
 gpointer __nop_thread(gpointer foo) {
 	char throwaway[81];
 	Sint32 read_ret;
+
+	foo = foo; /* because I can. and because gcc -Wall -W -pedantic is a bitch. */
 	
 	while (keep_nopping) {
 		sleep(2);

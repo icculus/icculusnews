@@ -12,6 +12,12 @@
 
 #include <netinet/in.h>
 
+/* squelch all the implicit function decl warnings */
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <execinfo.h>
+
 /* we use glib, because I'm too lazy to write 
  * string-mangling functions myself */
 #include <glib-2.0/glib.h>
@@ -75,5 +81,6 @@ int __write_block(char *str);
 char *__chop(char *str);
 gpointer __nop_thread(gpointer foo);
 void __free_queue_info_list_element(GList *ptr);
+void __print_protocol_fuckery_message();
 
 #endif
