@@ -12,9 +12,4 @@ notes:
 - This library's probably kinda sorta thread-safe, but I don't make any
 	guarantees.
 
-- pth (GNU Portable Threads), the replacement for the venerable pthreads,
-	can be found at:
-
-	http://www.gnu.org/software/pth.
-
 -- vogon.
