@@ -50,6 +50,7 @@ use constant canChangeOthersPasswords  => 1 << 10;
 use constant canEditAllItems           => 1 << 11;
 use constant canNotAuthorize           => 1 << 12;
 use constant canAccessAllLockedQueues  => 1 << 13;
+use constant canCreateUsers            => 1 << 14;
 
 # Queue rights constants.
 use constant canSeeInvisible  => 1 << 0;
@@ -169,7 +170,13 @@ my $rdfbase = '/webspace/rdf/';
 #  approve them, "canNotAuthorize" is appropriate. If you want anyone to be
 #  able to create personal news queues without running it by you first,
 #  "canCreateQueues" is a good idea.
-my $default_user_rights = canCreateQueues;
+my $default_user_rights = canCreateQueues | canCreateUsers;
+
+# This is the same as $default_user_rights, but for the anonymous account.
+#  If you want to lock out new users altogether, don't set canCreateUsers
+#  here; this way account creation has to go through users you have
+#  authorized to create accounts, which is militant, but potentially useful.
+my $anonymous_user_rights = canCreateUsers;
 
 # Owners of a queue, when initially creating the queue, are assigned these
 #  rights by default. Refer to "Queue rights constants", above. You probably
@@ -707,7 +714,7 @@ $commands{'AUTH'} = sub {
         $authuser = "anonymous account";
         $auth_uid = 0;
         $current_queue_rights = 0;
-        $current_global_rights = 0;
+        $current_global_rights = $anonymous_user_rights;
     } else {
         my ($user, $pass) = (undef, undef);
         if (defined $args) {
@@ -1155,6 +1162,11 @@ $commands{'CREATEUSER'} = sub {
 
     if ($uname =~ /[%_<>&\t#]/) {
         report_error('Username has illegal characters');
+        return(1);
+    }
+
+    if (($current_global_rights & canCreateUsers) == 0) {
+        report_error('You are not permitted to create new user accounts.');
         return(1);
     }
 
