@@ -1,7 +1,19 @@
 /* LibINews -- the only IcculusNews backend with the power of nougat
  * copyright (c) 2002 Colin "vogon" Bayer
  *
- * [ -- Insert GPL boilerplate here -- ]
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
 
@@ -147,26 +159,22 @@ Sint8 INEWS_auth(const char *username, const char *password) {
         case 'c': /* "can't execute query" */
             INEWS_disconnect();
             __inews_errno = ERR_SERVFAIL;
-            goto end_failure;
             break;
         case 'A': /* "Authorization for <foo> failed." */
             __inews_errno = ERR_NOSUCHUSER;
-            goto end_failure;
             break;
         case 'T': /* "This account has been disabled." */
             __inews_errno = ERR_UNAUTHORIZED;
-            goto end_failure;
             break;
         case 'F': /* "Failed to set default queue" */
             __inews_errno = ERR_NOSUCHQUEUE;
-            goto end_failure;
             break;
         default:
             __print_protocol_fuckery_message();
             __inews_errno = ERR_GENERIC;
-            goto end_failure;
             break;
         }
+        goto end_failure;
     }
 
     FUNC_END(0, -1)
@@ -306,9 +314,10 @@ Sint8 INEWS_changeQueue(int qid) {
 ArticleInfo **INEWS_digest(int offset, int n) {
     char tempstring[256], off_str[32];
     ArticleInfo **retval;
-    ArticleInfo *tempinfo;
+    ArticleInfo *tempinfo, *cacheptr;
     int record_pos, count = 0;
     bool eor = FALSE;
+    int requested_offset = offset;
 
     if (!serverstate.connected) {
 	__inews_errno = ERR_DISCONNECTED;
@@ -316,6 +325,31 @@ ArticleInfo **INEWS_digest(int offset, int n) {
     }
 
     retval = (ArticleInfo **)malloc(n * sizeof(ArticleInfo *));
+
+    /* iterate through the cache, and set the offset to the lowest-numbered
+     * cached item. assume that the items are listed in descending order of
+     * article ID. */
+
+    for (IList *ptr = digestcache; ptr; ptr = ilist_next(ptr)) {
+        ArticleInfo *tempptr = (ArticleInfo *)malloc(sizeof(ArticleInfo));
+        ArticleLinkedListHeader *curdata = ((ArticleLinkedListHeader *)(ptr->data));
+        if (curdata->qid == INEWS_getQID())
+            for (IList *aptr = curdata->head; aptr; aptr = ilist_next(aptr)) {
+                if (requested_offset) {
+                    if (((ArticleInfo *)(aptr->data))->aid < requested_offset) {
+                        memcpy(tempptr, aptr->data, sizeof(ArticleInfo));
+                        retval[count++] = tempptr;
+                        if (((ArticleInfo *)(aptr->data))->aid < offset) {
+                            offset = ((ArticleInfo *)(aptr->data))->aid;
+                        }
+                    }
+                } else {
+                    memcpy(tempptr, aptr->data, sizeof(ArticleInfo));
+                    retval[count++] = tempptr;
+                    offset = ((ArticleInfo *)(aptr->data))->aid;
+                }
+            }
+    }
 
     pthread_mutex_lock(&net_mutex);
 
@@ -334,7 +368,8 @@ ArticleInfo **INEWS_digest(int offset, int n) {
     }
 
     while (count < n) {
-	tempinfo = (ArticleInfo *)malloc(sizeof(ArticleInfo));
+        tempinfo = (ArticleInfo *)malloc(sizeof(ArticleInfo));
+        cacheptr = (ArticleInfo *)malloc(sizeof(ArticleInfo));
 
 	record_pos = 0;
 
@@ -348,23 +383,62 @@ ArticleInfo **INEWS_digest(int offset, int n) {
 	    if (!strcmp(tempstring, ".")) {
 		eor = TRUE;
 		break;
-	    }
+            }
+
+            /* we have to make a full copy for the cache, so that we're not
+             * dependent on the existence of the temporary copy */
 
 	    switch (++record_pos) {
-	    case 1: tempinfo->aid = atoi(tempstring); break;
-	    case 2: tempinfo->title = strdup(tempstring); break;
-	    case 3: strptime(tempstring, "%Y-%m-%d %T", &(tempinfo->ctime)); break;
-	    case 4: tempinfo->owneruid = atoi(tempstring); break;
-	    case 5: tempinfo->ownername = strdup(tempstring); break;
-	    case 6: tempinfo->dottedip = strdup(tempstring); break;
-	    case 7: tempinfo->approved = atoi(tempstring); break;
-	    case 8: tempinfo->deleted = atoi(tempstring); break;
+            case 1:
+                tempinfo->aid = atoi(tempstring);
+                cacheptr->aid = cacheptr->aid; break;
+            case 2:
+                tempinfo->title = strdup(tempstring);
+                cacheptr->title = strdup(tempstring); break;
+            case 3:
+                strptime(tempstring, "%Y-%m-%d %T", &(tempinfo->ctime));
+                memcpy(&(cacheptr->ctime), &(tempinfo->ctime), sizeof(struct tm)); break;
+            case 4:
+                tempinfo->owneruid = atoi(tempstring);
+                cacheptr->owneruid = tempinfo->owneruid; break;
+            case 5:
+                tempinfo->ownername = strdup(tempstring);
+                cacheptr->ownername = strdup(tempstring); break;
+            case 6:
+                tempinfo->dottedip = strdup(tempstring);
+                cacheptr->dottedip = strdup(tempstring); break;
+            case 7:
+                tempinfo->approved = atoi(tempstring);
+                cacheptr->approved = tempinfo->approved; break;
+            case 8:
+                tempinfo->deleted = atoi(tempstring);
+                tempinfo->deleted = tempinfo->deleted; break;
 	    }
 	}
 
 	if (eor) break;
 
-	retval[count++] = tempinfo;
+        retval[count++] = tempinfo;
+
+        /* cache the new digest */
+        {
+            IList *ptr;
+            ArticleLinkedListHeader *thisqueue;
+
+            for (ptr = digestcache; ptr; ptr = ilist_next(ptr)) {
+                if (((ArticleLinkedListHeader *)(ptr->data))->qid == INEWS_getQID()) break;
+                thisqueue = ((ArticleLinkedListHeader *)(ptr->data));
+            }
+
+            if (!ptr) {
+                thisqueue = (ArticleLinkedListHeader *)malloc(sizeof(ArticleLinkedListHeader));
+                thisqueue->qid = INEWS_getQID();
+                thisqueue->head = NULL;
+                digestcache = ilist_append_data(digestcache, thisqueue);
+            }
+
+            thisqueue->head = ilist_append_data(thisqueue->head, cacheptr);
+        }
     }
 
     /* if we hit a premature end-of-record, then we'll need to shrink down our
