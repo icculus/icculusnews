@@ -10,7 +10,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <errno.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -26,15 +25,16 @@
 																				end_failure: 													\
 																					__i = 1;	 													\
 																				real_end: 														\
-																					g_static_mutex_trylock(&net_mutex); \
-																					g_static_mutex_unlock(&net_mutex); 	\
+																					if (!semctl(net_sem, 0, GETVAL)) {	\
+																						__sem_unlock(net_sem);						\
+																					}																		\
 																					return __i ? __failure : __success;	\
 								 											 }
 
-int INEWS_connect(const char *hostname, Uint32 port) {
+Sint8 INEWS_connect(const char *hostname, Uint32 port) {
 	struct hostent *hostents;
 	
-	g_static_mutex_lock(&net_mutex);
+	__sem_lock(net_sem);
 	
 	serverstate.hostname = g_strdup(hostname);
 	serverstate.port = port;
@@ -109,9 +109,10 @@ int INEWS_connect(const char *hostname, Uint32 port) {
 	FUNC_END(0, -1)
 }
 
-int INEWS_auth(const char *username, const char *password) {
+Sint8 INEWS_auth(const char *username, const char *password) {
 	char authstring[255];
 	char respstring[81];
+	pth_attr_t nop_thread_attr;
 
 	if (!serverstate.connected) {
 		__inews_errno = ERR_DISCONNECTED;
@@ -121,7 +122,7 @@ int INEWS_auth(const char *username, const char *password) {
 	memset(authstring, 0, 255);
 	memset(respstring, 0, 81);
 	
-	g_static_mutex_lock(&net_mutex);
+	__sem_lock(net_sem);
 
 	if (username) {
 		sprintf(authstring, "AUTH \"%s\" \"%s\"\n", username, password);
@@ -135,8 +136,6 @@ int INEWS_auth(const char *username, const char *password) {
 		goto end_failure;
 	}
 
-	g_static_mutex_unlock(&net_mutex);	
-	
 	switch(respstring[0]) {
 		case '+':
 			serverstate.username = username ? g_strdup(username) : g_strdup("anonymous");
@@ -144,7 +143,9 @@ int INEWS_auth(const char *username, const char *password) {
 			serverstate.uid = atoi(respstring + 2);
 			serverstate.qid = atoi(strchr(respstring, ',') + 1);
 			keep_nopping = 1;
-			nop_thread_ptr = g_thread_create(__nop_thread, NULL, TRUE, NULL);
+			nop_thread_attr = pth_attr_new();
+			pth_attr_set(nop_thread_attr, PTH_ATTR_NAME, "nop_thread");
+			nop_thread = pth_spawn(nop_thread_attr, __nop_thread, NULL);
 			goto end_success;
 			break;
 		default:
@@ -177,16 +178,19 @@ int INEWS_auth(const char *username, const char *password) {
 	FUNC_END(0, -1)
 }
 
-int INEWS_retrQueueInfo() {
+Sint8 INEWS_retrQueueInfo() {
 	QueueInfo *temp_ptr;
 	char temp_data[256];
 	GList *temp_iter;
 	Uint8 record_pos = 0;
 
-	if (!serverstate.connected) return ERR_DISCONNECTED;
+	if (!serverstate.connected) {
+		__inews_errno = ERR_DISCONNECTED;
+		goto end_failure;
+	}
 	
-	g_static_mutex_lock(&net_mutex);
-
+	__sem_lock(net_sem);
+	
 	__write_block("ENUM queues\n");
 	if (__read_line(temp_data, 255) < 0) { /* to get rid of "+ Here comes..." */
 		goto end_failure;
@@ -258,7 +262,7 @@ int INEWS_retrQueueInfo() {
 	FUNC_END(0, -1)
 }
 
-int INEWS_changeQueue(int qid) {
+Sint8 INEWS_changeQueue(int qid) {
 	char tempstring[255];
 
 	if (!serverstate.connected) {
@@ -272,7 +276,7 @@ int INEWS_changeQueue(int qid) {
 	
 	memset(tempstring, 0, 255);
 				
-	g_static_mutex_lock(&net_mutex);
+	__sem_lock(net_sem);
 	
 	sprintf(tempstring, "QUEUE %i\n", qid);
 
@@ -284,8 +288,6 @@ int INEWS_changeQueue(int qid) {
 		goto end_failure;
 	}
 
-	g_static_mutex_unlock(&net_mutex);
-	
 	switch(tempstring[0]) {
 		case '+':
 			serverstate.qid = qid;
@@ -325,8 +327,8 @@ ArticleInfo **INEWS_digest(int n) {
 	
 	retval = (ArticleInfo **)malloc(n * sizeof(ArticleInfo *));
 	
-	g_static_mutex_lock(&net_mutex);
-
+	__sem_lock(net_sem);
+	
 	sprintf(tempstring, "DIGEST %i\n", n);
 
 	__write_block(tempstring);
@@ -379,7 +381,7 @@ ArticleInfo **INEWS_digest(int n) {
 	FUNC_END(retval, NULL)
 }
 
-int INEWS_submitArticle(char *title, char *body) {
+Sint8 INEWS_submitArticle(char *title, char *body) {
 	char tempstring[512];
 	Uint32 maxlen;
 
@@ -397,7 +399,7 @@ int INEWS_submitArticle(char *title, char *body) {
 
 	sprintf(tempstring, "POST %s\n", title);
 
-	g_static_mutex_lock(&net_mutex);
+	__sem_lock(net_sem);
 
 	__write_block(tempstring);
 	
@@ -466,8 +468,7 @@ void INEWS_disconnect() {
 	if (!serverstate.connected) return;
 	
 	keep_nopping = 0;
-	if (nop_thread_ptr && nop_thread_ptr->joinable) 
-		g_thread_join(nop_thread_ptr);
+	pth_join(nop_thread, NULL);
 	close(fd);
 	serverstate.connected = FALSE;
 
@@ -489,7 +490,7 @@ void INEWS_disconnect() {
 /* internal: returns one line of text from the server,
  * /sans/ the newline. */
 
-int __read_line(char *str, int max_sz) {
+Sint8 __read_line(char *str, int max_sz) {
 	ssize_t count = 0, len = 0;
 
 	while (len < max_sz) {
@@ -514,7 +515,7 @@ int __read_line(char *str, int max_sz) {
 	return ERR_SUCCESS;
 }
 
-int __write_block(char *str) {
+Sint8 __write_block(char *str) {
 	ssize_t count = 0, len = 0;
 	
 	while (len < (ssize_t)strlen(str)) {
@@ -530,23 +531,22 @@ int __write_block(char *str) {
 	return ERR_SUCCESS;
 }
 
-gpointer __nop_thread(gpointer foo) {
+void *__nop_thread(void *foo) {
 	char throwaway[81];
-	Sint32 read_ret;
 
 	foo = foo; /* because I can. and because gcc -Wall -W -pedantic is a bitch. */
 	
 	while (keep_nopping) {
-		sleep(2);
-		g_static_mutex_lock(&net_mutex);
-
+		pth_sleep(2);
+		__sem_lock(net_sem);
+		
 		__write_block("NOOP\n");
-		if ((read_ret = __read_line(throwaway, 80)) < 0) {
-			g_static_mutex_unlock(&net_mutex);
+		if (__read_line(throwaway, 80)) {
+			__sem_unlock(net_sem);
 			return NULL;
 		}
 		
-		g_static_mutex_unlock(&net_mutex);
+		__sem_unlock(net_sem);
 	}
 
 	return NULL;

@@ -1,0 +1,20 @@
+Until I get around to autoconfiscating this thing, read the following few
+notes:
+
+- sscanf() is broken on the current glibc trunk.  If you're using Gentoo,
+	or any other distro (except Debian, which seems to have fixed it in the
+	2.2.5 series), and you get mysterious segfaults in INEWS_submitArticle(),
+	rebuild libinews with the define I_LIKE_BROKEN_SSCANF_AND_I_CANNOT_LIE.
+	If you're too lazy to figure this out yourself, run make like so:
+
+	make all CFLAGS="-DI_LIKE_BROKEN_SSCANF_AND_I_CANNOT_LIE".
+
+- This library's probably kinda sorta thread-safe, but I don't make any
+	guarantees.
+
+- pth (GNU Portable Threads), the replacement for the venerable pthreads,
+	can be found at:
+
+	http://www.gnu.org/software/pth.
+
+-- vogon.
