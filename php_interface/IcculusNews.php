@@ -148,9 +148,12 @@ function news_get_userinfo($sock, &$uid, &$qid)
 //  as...anonymous logins will only get approved, non-deleted items, for
 //  example.
 //
-function news_digest($sock, &$digestarray, $maxitems = 5)
+function news_digest($sock, &$digestarray, $startpoint = false, $maxitems = 5)
 {
-    fputs($sock, "DIGEST $maxitems\n");
+    if ($startpoint === false)
+        $startpoint = '-';
+
+    fputs($sock, "DIGEST $startpoint $maxitems\n");
     $in = fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
