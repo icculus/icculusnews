@@ -35,41 +35,41 @@ typedef signed long long Sint64;
 typedef Uint8 bool;
 
 #ifndef TRUE
-	#define TRUE 1
+#define TRUE 1
 #endif
 
 #ifndef FALSE
-	#define FALSE 0
+#define FALSE 0
 #endif
 
 typedef struct {
-	Uint8 major;
-	Uint8 minor;
-	Uint8 rev;
+    Uint8 major;
+    Uint8 minor;
+    Uint8 rev;
 } INEWS_Version;
 
 typedef struct {
-	Uint8 qid;
-	char *name;
-	char *description;
-	char *digest;
-	char *singleitem;
-	char *home;
-	char *rdf;
-	struct tm ctime;
-	Uint8 owneruid;
-	char *ownername;
+    Uint8 qid;
+    char *name;
+    char *description;
+    char *digest;
+    char *singleitem;
+    char *home;
+    char *rdf;
+    struct tm ctime;
+    Uint8 owneruid;
+    char *ownername;
 } QueueInfo;
 
 typedef struct {
-	Uint16 aid;
-	char *title;
-	struct tm ctime;
-	Uint8 owneruid;
-	char *ownername;
-	char *dottedip;
-	bool approved;
-	bool deleted;
+    Uint16 aid;
+    char *title;
+    struct tm ctime;
+    Uint8 owneruid;
+    char *ownername;
+    char *dottedip;
+    bool approved;
+    bool deleted;
 } ArticleInfo;
 
 #define __INEWS_LINKTIME_MAJOR 0
@@ -77,9 +77,9 @@ typedef struct {
 #define __INEWS_LINKTIME_REV 1
 
 #define INEWS_getLinktimeVersion() \
-	{ __INEWS_LINKTIME_MAJOR, \
-		__INEWS_LINKTIME_MINOR, \
-		__INEWS_LINKTIME_REV }
+    { __INEWS_LINKTIME_MAJOR, \
+    __INEWS_LINKTIME_MINOR, \
+    __INEWS_LINKTIME_REV }
 
 #define ERR_SUCCESS 0 				/* success */
 #define ERR_GENERIC -1				/* generic error; blame it on Gen. Protection */
@@ -144,6 +144,9 @@ extern ArticleInfo **INEWS_digest(int offset, int n);
 
 /* submit an article. OMG */
 extern Sint8 INEWS_submitArticle(char *title, char *body);
+
+/* submit / edit an article.  supersedes INEWS_submitArticle(). */
+extern Sint8 INEWS_submitEditArticle(char *title, char *body, int aid);
 
 /* change the approval status of article aid */
 Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve);
