@@ -185,8 +185,6 @@ function get_connected(&$sock)
 
 function output_queue_rows($sock, $showall = 0)
 {
-    global $PHP_SELF;
-
     // create some local variables.
     $err = $query = NULL;
 
@@ -249,7 +247,7 @@ function output_queue_rows($sock, $showall = 0)
         print("<td align=\"center\"> $tags {$item['postdate']} $endtags </td>\n");
 
         print("<td align=\"center\"> $tags");
-        print(" <a href=\"{$PHP_SELF}?action=post&editid={$item['id']}\">");
+        print(" <a href=\"{$_SERVER['PHP_SELF']}?action=post&editid={$item['id']}\">");
         print("{$item['title']} $endtags </a> </td>\n");
 
         print("<td align=\"center\"> $tags {$item['author']} $endtags </td>\n");
@@ -264,8 +262,6 @@ function output_queue_rows($sock, $showall = 0)
 
 function output_news_queue_widgets($showall = 0)
 {
-    global $PHP_SELF;
-
     is_logged_in($u, $p, $q);
 
     if (isset($showall) == false)
@@ -301,7 +297,7 @@ function output_news_queue_widgets($showall = 0)
 
     echo <<< EOF
 
-      <form method="post" action="$PHP_SELF?action=view">
+      <form method="post" action="${_SERVER['PHP_SELF']}?action=view">
         <input type="hidden" name="showall" value="$showall">
 
 EOF;
@@ -350,9 +346,9 @@ echo <<< EOF
           </td>
           <td align="right">
             [
-            <a href="$PHP_SELF?action=view&showall=$showallflip">$showalltext</a>
+            <a href="${_SERVER['PHP_SELF']}?action=view&showall=$showallflip">$showalltext</a>
             |
-            <a href="$PHP_SELF?action=logout">Log out</a>
+            <a href="${_SERVER['PHP_SELF']}?action=logout">Log out</a>
             ]
           </td>
         </tr>
@@ -438,7 +434,7 @@ echo <<< EOF
 
       <table width="75%">
         <tr>
-          <td align="center"><a href="$PHP_SELF?action=post">Add new items.</a></td>
+          <td align="center"><a href="${_SERVER['PHP_SELF']}?action=post">Add new items.</a></td>
           <td align="center"><a href="{$qinfo['itemarchiveurl']}">View news archive.</a></td>
           <td align="center"><a href="{$qinfo['url']}">View front page.</a></td>
         </tr>
@@ -576,12 +572,11 @@ function handle_news_queue_commands()
 
 function output_login_widgets($next_action = 'view')
 {
-    global $SERVER_NAME, $REQUEST_URI, $PHP_SELF;
     global $form_user, $form_next;
 
     if (!isset($_SERVER['HTTPS']))
     {
-         $href = "https://${SERVER_NAME}${REQUEST_URI}";
+         $href = "https://${_SERVER['SERVER_NAME']}${_SERVER['REQUEST_URI']}";
          print "<p align=\"center\">You need a secure connection to log in.</p>\n";
          print "<p align=\"center\">Try <a href=\"$href\">here</a>.</p>\n";
          return;
@@ -639,7 +634,7 @@ function output_login_widgets($next_action = 'view')
     <center>
       <form name="loginform" method="post"
             onsubmit="return check_login_fields();"
-            action="$PHP_SELF?action=login">
+            action="${_SERVER['PHP_SELF']}?action=login">
         <input type="hidden" name="form_next" value="$next_action">
         <table border="1">
           <tr>
@@ -656,7 +651,7 @@ function output_login_widgets($next_action = 'view')
                 <tr>
                   <td align="left" width="25%">
                     <font size="-2">
-                      <a href="$PHP_SELF?action=newuser">New user</a>
+                      <a href="${_SERVER['PHP_SELF']}?action=newuser">New user</a>
                     </font>
                   </td>
                   <td align="center" width="50%">
@@ -664,7 +659,7 @@ function output_login_widgets($next_action = 'view')
                   </td>
                   <td align="right" width="25%">
                     <font size="-2">
-                      <a href="$PHP_SELF?action=forgotpw">Forgot password</a>
+                      <a href="${_SERVER['PHP_SELF']}?action=forgotpw">Forgot password</a>
                     </font>
                   </td>
                 </tr>
@@ -681,7 +676,6 @@ EOF;
 
 function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
 {
-    global $PHP_SELF;
     global $form_postdate, $form_postanon;
 
     $unsafe_text = $item['text'];
@@ -710,7 +704,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
 
     $newlogin_form = (isset($item['id'])) ?
         '' :
-        "<a href=\"$PHP_SELF?action=login&form_next=post\"><font size=\"-2\">(Log in as someone else)</font></a>";
+        "<a href=\"${_SERVER['PHP_SELF']}?action=login&form_next=post\"><font size=\"-2\">(Log in as someone else)</font></a>";
 
     $queue_form = '';
     if (count($queues) == 1)
@@ -746,7 +740,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
 
     echo <<< EOF
 
-    <form method="post" action="$PHP_SELF?action=post$idarg">
+    <form method="post" action="${_SERVER['PHP_SELF']}?action=post$idarg">
       <input type="hidden" name="form_fromuser" value="{$item['author']}">
       <input type="hidden" name="form_postdate" value="{$item['postdate']}">
       <table>
@@ -967,8 +961,6 @@ function do_login($next_action = NULL)
 
 function do_logout()
 {
-    global $PHP_SELF;
-
     $_SESSION['iccnews_username'] = NULL;
     $_SESSION['iccnews_userpass'] = NULL;
     $_SESSION['iccnews_userqueue'] = NULL;
@@ -980,7 +972,7 @@ function do_logout()
 
     <center>
       <p>You have been logged out.</p>
-      <p>You can log back in <a href="$PHP_SELF?action=login">here</a>.
+      <p>You can log back in <a href="${_SERVER['PHP_SELF']}?action=login">here</a>.
     </center>
 
 EOF;
@@ -1137,7 +1129,7 @@ function do_forgotpw()
             print("<center>\n");
             print("<font color=\"#0000FF\">Password reset!</font><br>\n");
             print("A new password has been emailed to you.<br>\n");
-            print("You can go <a href=\"$PHP_SELF?action=login\">here</a>");
+            print("You can go <a href=\"${_SERVER['PHP_SELF']}?action=login\">here</a>");
             print(" to login with the new password.\n</center>\n");
         } // if
         else
@@ -1221,7 +1213,7 @@ function do_forgotpw()
             <form name="forgotform"
                   method="post"
                   onsubmit="return check_forgot_fields();"
-                  action="$PHP_SELF?action=forgotpw">
+                  action="${_SERVER['PHP_SELF']}?action=forgotpw">
               <table border="0">
                 <tr>
                   <td align="right">Username:</td>
@@ -1252,7 +1244,6 @@ function do_newuser()
     global $form_newuser_submit;
     global $form_new_uname, $form_new_pword1, $form_new_pword2, $form_new_email;
     global $daemon_host, $daemon_port;
-    global $SERVER_NAME, $REQUEST_URI;
 
     if (!isset($_SERVER['HTTPS']))
     {
@@ -1304,7 +1295,7 @@ function do_newuser()
             $output_widgets = false;
             print("<center>\n");
             print("<font color=\"#0000FF\">Account created!</font><br>\n");
-            print("You can go <a href=\"$PHP_SELF?action=login\">here</a>");
+            print("You can go <a href=\"${_SERVER['PHP_SELF']}?action=login\">here</a>");
             print(" to login and try your new account out.\n</center>\n");
         } // if
         else
@@ -1400,7 +1391,7 @@ function do_newuser()
             <form name="newuserform"
                   method="post"
                   onsubmit="return check_newuser_fields();"
-                  action="$PHP_SELF?action=newuser">
+                  action="${_SERVER['PHP_SELF']}?action=newuser">
               <table border="0">
                 <tr>
                   <td align="right">Username:</td>
