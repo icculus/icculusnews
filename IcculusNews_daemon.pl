@@ -1667,6 +1667,7 @@ if (not $daemonize) {
 
     syslog_and_die("couldn't create listen socket: $!") if (not $listensock);
 
+    my $selection = new IO::Select( $listensock );
     drop_privileges();
 
     do_log(syslogDaemon, "Now accepting connections (max $max_connects" .
@@ -1677,8 +1678,15 @@ if (not $daemonize) {
         # prevent connection floods.
         sleep(1) while (scalar(@kids) >= $max_connects);
 
+        # if timed out, do upkeep and try again.
+        1 while not $selection->can_read(999999);
+
+        # we've got a connection!
         my $client = $listensock->accept();
-        syslog_and_die("accept() failed: $!") if (not $client);
+        if (not $client) {
+            syslog("info", "accept() failed: $!") if ($use_syslog);
+            next;
+        }
 
         my $ip = $client->peerhost();
         syslog("info", "connection from $ip") if ($use_syslog);
