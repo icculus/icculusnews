@@ -466,4 +466,15 @@ function news_parse_rdf($filename, &$digestarray, $max_items = 5)
     return(NULL);  // no error.
 } // news_parse_rdf
 
+
+function news_createuser($sock, $uname, $email, $pword)
+{
+    fputs($sock, "CREATEUSER \"$uname\" \"$email\" \"$pword\"\n");
+    $in = fgets($sock, 4096);
+    if ($in{0} != '+')
+        return(substr($in, 2));
+
+    return(NULL);  // no error.
+} // news_noop
+
 ?>
