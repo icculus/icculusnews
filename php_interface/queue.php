@@ -742,8 +742,8 @@ function handle_news_edit_commands()
     $form_text     = ltrim(rtrim($form_text));
     $form_title    = ltrim(rtrim($form_title));
 
-    if (strlen($form_title) > 64)
-        $form_title = substr($form_title, 0, 64);
+    if (strlen($form_title) > 128)
+        $form_title = substr($form_title, 0, 128);
 
     if ( (($form_preview) or ($form_submit)) and
          (($form_fromuser == '') or ($form_text == '') or ($form_title == '')) )
