@@ -23,9 +23,10 @@ dnl Add the languages which your application supports here.
 ALL_LINGUAS=""
 AM_GLIB_GNU_GETTEXT
 
-INEWS_LIBS="-linews"
-
-LIBS="$INEWS_LIBS $LIBS"
+AC_CHECK_LIB(inews, INEWS_getVersion, LIBS="$LIBS -linews",
+	AC_MSG_ERROR(libinews not found))
+AC_CHECK_HEADER(IcculusNews.h, ,
+	AC_MSG_ERROR(IcculusNews.h not found))
 
 dnl Use -Wall if we have gcc.
 changequote(,)dnl

@@ -60,3 +60,27 @@ on_clear_button_clicked                (GtkButton       *button,
 void
 on_submit_button_clicked               (GtkButton       *button,
                                         gpointer         user_data);
+
+void
+on_edit_article_button_clicked         (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_app_unapp_button_clicked            (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_del_undel_button_clicked            (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_purge_sel_button_clicked            (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_purge_all_button_clicked            (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_close_alist_button_clicked          (GtkButton       *button,
+                                        gpointer         user_data);
