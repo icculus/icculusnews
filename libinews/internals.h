@@ -16,14 +16,14 @@
 /* squelch all the implicit function decl warnings */
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <execinfo.h>
 #include <errno.h>
+#include <ctype.h>
 
-/* we use glib, because I'm too lazy to write 
- * string-mangling functions myself */
-#include <glib-2.0/glib.h>
 #include "IList.h"
+
+#define __USE_BSD
+#include <string.h>
 
 #define INEWS_MAJOR __INEWS_LINKTIME_MAJOR
 #define INEWS_MINOR __INEWS_LINKTIME_MINOR
@@ -32,7 +32,7 @@
 INEWS_Version __inews_version;
 
 typedef struct {
-	gboolean connected;
+	bool connected;
 	char *hostname;
 	Uint16 port;
 	char *username;
@@ -43,7 +43,6 @@ typedef struct {
 } ServerState;
 
 ServerState serverstate;
-/*GList *qinfoptr;*/
 IList *qinfoptr;
 int fd;
 struct sockaddr_in sa;
