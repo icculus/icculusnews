@@ -667,3 +667,339 @@ create_QueueListWindow (void)
   return QueueListWindow;
 }
 
+GtkWidget*
+create_ArticleListWindow (void)
+{
+  GtkWidget *ArticleListWindow;
+  GtkWidget *vbox4;
+  GtkWidget *frame3;
+  GtkWidget *scrolledwindow3;
+  GtkWidget *ArticleListView;
+  GtkWidget *label27;
+  GtkWidget *frame4;
+  GtkWidget *table4;
+  GtkWidget *ACTimeLabel;
+  GtkWidget *AIDLabel;
+  GtkWidget *ATitleLabel;
+  GtkWidget *AOwnerLabel;
+  GtkWidget *AIPLabel;
+  GtkWidget *AApproveLabel;
+  GtkWidget *ADeletedLabel;
+  GtkWidget *label28;
+  GtkWidget *hbuttonbox5;
+  GtkWidget *edit_article_button;
+  GtkWidget *alignment16;
+  GtkWidget *hbox17;
+  GtkWidget *image15;
+  GtkWidget *label43;
+  GtkWidget *app_unapp_button;
+  GtkWidget *alignment18;
+  GtkWidget *hbox19;
+  GtkWidget *image17;
+  GtkWidget *label45;
+  GtkWidget *del_undel_button;
+  GtkWidget *alignment13;
+  GtkWidget *hbox14;
+  GtkWidget *image12;
+  GtkWidget *label40;
+  GtkWidget *purge_sel_button;
+  GtkWidget *alignment12;
+  GtkWidget *hbox13;
+  GtkWidget *image11;
+  GtkWidget *label39;
+  GtkWidget *purge_all_button;
+  GtkWidget *alignment11;
+  GtkWidget *hbox12;
+  GtkWidget *image10;
+  GtkWidget *label38;
+  GtkWidget *close_alist_button;
+
+  ArticleListWindow = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title (GTK_WINDOW (ArticleListWindow), _("Last <n> Articles [inews://vogon@icculus.org:263/vogon's stuff]"));
+
+  vbox4 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_show (vbox4);
+  gtk_container_add (GTK_CONTAINER (ArticleListWindow), vbox4);
+
+  frame3 = gtk_frame_new (NULL);
+  gtk_widget_show (frame3);
+  gtk_box_pack_start (GTK_BOX (vbox4), frame3, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame3), 5);
+
+  scrolledwindow3 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_show (scrolledwindow3);
+  gtk_container_add (GTK_CONTAINER (frame3), scrolledwindow3);
+  gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow3), 5);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow3), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+
+  ArticleListView = gtk_tree_view_new ();
+  gtk_widget_show (ArticleListView);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow3), ArticleListView);
+
+  label27 = gtk_label_new (_("<span size=\"small\">Articles</span>"));
+  gtk_widget_show (label27);
+  gtk_frame_set_label_widget (GTK_FRAME (frame3), label27);
+  gtk_label_set_use_markup (GTK_LABEL (label27), TRUE);
+  gtk_label_set_justify (GTK_LABEL (label27), GTK_JUSTIFY_LEFT);
+
+  frame4 = gtk_frame_new (NULL);
+  gtk_widget_show (frame4);
+  gtk_box_pack_start (GTK_BOX (vbox4), frame4, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame4), 5);
+
+  table4 = gtk_table_new (3, 4, TRUE);
+  gtk_widget_show (table4);
+  gtk_container_add (GTK_CONTAINER (frame4), table4);
+  gtk_container_set_border_width (GTK_CONTAINER (table4), 5);
+
+  ACTimeLabel = gtk_label_new (_("Created: 12-31-69 23:49:59"));
+  gtk_widget_show (ACTimeLabel);
+  gtk_table_attach (GTK_TABLE (table4), ACTimeLabel, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (ACTimeLabel), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (ACTimeLabel), 0, 0.5);
+
+  AIDLabel = gtk_label_new (_("AID: 1337"));
+  gtk_widget_show (AIDLabel);
+  gtk_table_attach (GTK_TABLE (table4), AIDLabel, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (AIDLabel), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (AIDLabel), 0, 0.5);
+
+  ATitleLabel = gtk_label_new (_("Title: Lunix rulez."));
+  gtk_widget_show (ATitleLabel);
+  gtk_table_attach (GTK_TABLE (table4), ATitleLabel, 1, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (ATitleLabel), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (ATitleLabel), 0, 0.5);
+
+  AOwnerLabel = gtk_label_new (_("Owner: vogon (UID 7)"));
+  gtk_widget_show (AOwnerLabel);
+  gtk_table_attach (GTK_TABLE (table4), AOwnerLabel, 2, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (AOwnerLabel), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (AOwnerLabel), 0, 0.5);
+
+  AIPLabel = gtk_label_new (_("Posted from: 123.45.67.89"));
+  gtk_widget_show (AIPLabel);
+  gtk_table_attach (GTK_TABLE (table4), AIPLabel, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (AIPLabel), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (AIPLabel), 0, 0.5);
+
+  AApproveLabel = gtk_label_new (_("Approved: Yes"));
+  gtk_widget_show (AApproveLabel);
+  gtk_table_attach (GTK_TABLE (table4), AApproveLabel, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (AApproveLabel), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (AApproveLabel), 0, 0.5);
+
+  ADeletedLabel = gtk_label_new (_("Deleted: No"));
+  gtk_widget_show (ADeletedLabel);
+  gtk_table_attach (GTK_TABLE (table4), ADeletedLabel, 3, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (ADeletedLabel), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (ADeletedLabel), 0, 0.5);
+
+  label28 = gtk_label_new (_("<span size=\"small\">Detailed Information</span>"));
+  gtk_widget_show (label28);
+  gtk_frame_set_label_widget (GTK_FRAME (frame4), label28);
+  gtk_label_set_use_markup (GTK_LABEL (label28), TRUE);
+  gtk_label_set_justify (GTK_LABEL (label28), GTK_JUSTIFY_LEFT);
+
+  hbuttonbox5 = gtk_hbutton_box_new ();
+  gtk_widget_show (hbuttonbox5);
+  gtk_box_pack_start (GTK_BOX (vbox4), hbuttonbox5, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (hbuttonbox5), 5);
+  gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox5), GTK_BUTTONBOX_END);
+  gtk_button_box_set_spacing (GTK_BUTTON_BOX (hbuttonbox5), 5);
+
+  edit_article_button = gtk_button_new ();
+  gtk_widget_show (edit_article_button);
+  gtk_container_add (GTK_CONTAINER (hbuttonbox5), edit_article_button);
+  GTK_WIDGET_SET_FLAGS (edit_article_button, GTK_CAN_DEFAULT);
+
+  alignment16 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_show (alignment16);
+  gtk_container_add (GTK_CONTAINER (edit_article_button), alignment16);
+
+  hbox17 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_show (hbox17);
+  gtk_container_add (GTK_CONTAINER (alignment16), hbox17);
+
+  image15 = gtk_image_new_from_stock ("gtk-jump-to", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show (image15);
+  gtk_box_pack_start (GTK_BOX (hbox17), image15, FALSE, FALSE, 0);
+
+  label43 = gtk_label_new_with_mnemonic (_("Edit Article"));
+  gtk_widget_show (label43);
+  gtk_box_pack_start (GTK_BOX (hbox17), label43, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label43), GTK_JUSTIFY_LEFT);
+
+  app_unapp_button = gtk_button_new ();
+  gtk_widget_show (app_unapp_button);
+  gtk_container_add (GTK_CONTAINER (hbuttonbox5), app_unapp_button);
+  GTK_WIDGET_SET_FLAGS (app_unapp_button, GTK_CAN_DEFAULT);
+
+  alignment18 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_show (alignment18);
+  gtk_container_add (GTK_CONTAINER (app_unapp_button), alignment18);
+
+  hbox19 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_show (hbox19);
+  gtk_container_add (GTK_CONTAINER (alignment18), hbox19);
+
+  image17 = gtk_image_new_from_stock ("gtk-apply", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show (image17);
+  gtk_box_pack_start (GTK_BOX (hbox19), image17, FALSE, FALSE, 0);
+
+  label45 = gtk_label_new_with_mnemonic (_("Approve"));
+  gtk_widget_show (label45);
+  gtk_box_pack_start (GTK_BOX (hbox19), label45, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label45), GTK_JUSTIFY_LEFT);
+
+  del_undel_button = gtk_button_new ();
+  gtk_widget_show (del_undel_button);
+  gtk_container_add (GTK_CONTAINER (hbuttonbox5), del_undel_button);
+  GTK_WIDGET_SET_FLAGS (del_undel_button, GTK_CAN_DEFAULT);
+
+  alignment13 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_show (alignment13);
+  gtk_container_add (GTK_CONTAINER (del_undel_button), alignment13);
+
+  hbox14 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_show (hbox14);
+  gtk_container_add (GTK_CONTAINER (alignment13), hbox14);
+
+  image12 = gtk_image_new_from_stock ("gtk-cancel", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show (image12);
+  gtk_box_pack_start (GTK_BOX (hbox14), image12, FALSE, FALSE, 0);
+
+  label40 = gtk_label_new_with_mnemonic (_("Delete"));
+  gtk_widget_show (label40);
+  gtk_box_pack_start (GTK_BOX (hbox14), label40, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label40), GTK_JUSTIFY_LEFT);
+
+  purge_sel_button = gtk_button_new ();
+  gtk_widget_show (purge_sel_button);
+  gtk_container_add (GTK_CONTAINER (hbuttonbox5), purge_sel_button);
+  GTK_WIDGET_SET_FLAGS (purge_sel_button, GTK_CAN_DEFAULT);
+
+  alignment12 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_show (alignment12);
+  gtk_container_add (GTK_CONTAINER (purge_sel_button), alignment12);
+
+  hbox13 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_show (hbox13);
+  gtk_container_add (GTK_CONTAINER (alignment12), hbox13);
+
+  image11 = gtk_image_new_from_stock ("gtk-delete", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show (image11);
+  gtk_box_pack_start (GTK_BOX (hbox13), image11, FALSE, FALSE, 0);
+
+  label39 = gtk_label_new_with_mnemonic (_("Purge Selected"));
+  gtk_widget_show (label39);
+  gtk_box_pack_start (GTK_BOX (hbox13), label39, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label39), GTK_JUSTIFY_LEFT);
+
+  purge_all_button = gtk_button_new ();
+  gtk_widget_show (purge_all_button);
+  gtk_container_add (GTK_CONTAINER (hbuttonbox5), purge_all_button);
+  GTK_WIDGET_SET_FLAGS (purge_all_button, GTK_CAN_DEFAULT);
+
+  alignment11 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_show (alignment11);
+  gtk_container_add (GTK_CONTAINER (purge_all_button), alignment11);
+
+  hbox12 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_show (hbox12);
+  gtk_container_add (GTK_CONTAINER (alignment11), hbox12);
+
+  image10 = gtk_image_new_from_stock ("gtk-delete", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show (image10);
+  gtk_box_pack_start (GTK_BOX (hbox12), image10, FALSE, FALSE, 0);
+
+  label38 = gtk_label_new_with_mnemonic (_("Purge All"));
+  gtk_widget_show (label38);
+  gtk_box_pack_start (GTK_BOX (hbox12), label38, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label38), GTK_JUSTIFY_LEFT);
+
+  close_alist_button = gtk_button_new_from_stock ("gtk-close");
+  gtk_widget_show (close_alist_button);
+  gtk_container_add (GTK_CONTAINER (hbuttonbox5), close_alist_button);
+  GTK_WIDGET_SET_FLAGS (close_alist_button, GTK_CAN_DEFAULT);
+
+  gtk_signal_connect (GTK_OBJECT (edit_article_button), "clicked",
+                      GTK_SIGNAL_FUNC (on_edit_article_button_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (app_unapp_button), "clicked",
+                      GTK_SIGNAL_FUNC (on_app_unapp_button_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (del_undel_button), "clicked",
+                      GTK_SIGNAL_FUNC (on_del_undel_button_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (purge_sel_button), "clicked",
+                      GTK_SIGNAL_FUNC (on_purge_sel_button_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (purge_all_button), "clicked",
+                      GTK_SIGNAL_FUNC (on_purge_all_button_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (close_alist_button), "clicked",
+                      GTK_SIGNAL_FUNC (on_close_alist_button_clicked),
+                      NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF (ArticleListWindow, ArticleListWindow, "ArticleListWindow");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, vbox4, "vbox4");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, frame3, "frame3");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, scrolledwindow3, "scrolledwindow3");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, ArticleListView, "ArticleListView");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, label27, "label27");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, frame4, "frame4");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, table4, "table4");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, ACTimeLabel, "ACTimeLabel");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, AIDLabel, "AIDLabel");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, ATitleLabel, "ATitleLabel");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, AOwnerLabel, "AOwnerLabel");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, AIPLabel, "AIPLabel");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, AApproveLabel, "AApproveLabel");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, ADeletedLabel, "ADeletedLabel");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, label28, "label28");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, hbuttonbox5, "hbuttonbox5");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, edit_article_button, "edit_article_button");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, alignment16, "alignment16");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, hbox17, "hbox17");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, image15, "image15");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, label43, "label43");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, app_unapp_button, "app_unapp_button");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, alignment18, "alignment18");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, hbox19, "hbox19");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, image17, "image17");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, label45, "label45");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, del_undel_button, "del_undel_button");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, alignment13, "alignment13");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, hbox14, "hbox14");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, image12, "image12");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, label40, "label40");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, purge_sel_button, "purge_sel_button");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, alignment12, "alignment12");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, hbox13, "hbox13");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, image11, "image11");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, label39, "label39");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, purge_all_button, "purge_all_button");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, alignment11, "alignment11");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, hbox12, "hbox12");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, image10, "image10");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, label38, "label38");
+  GLADE_HOOKUP_OBJECT (ArticleListWindow, close_alist_button, "close_alist_button");
+
+  return ArticleListWindow;
+}
+

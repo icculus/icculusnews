@@ -5,3 +5,4 @@
 GtkWidget* create_LoginWindow (void);
 GtkWidget* create_StorySubmitWindow (void);
 GtkWidget* create_QueueListWindow (void);
+GtkWidget* create_ArticleListWindow (void);

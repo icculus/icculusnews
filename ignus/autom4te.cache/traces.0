@@ -288,10 +288,13 @@ m4trace:configure.in:24: -1- AC_SUBST([INTLOBJS])
 m4trace:configure.in:24: -1- AC_SUBST([POFILES])
 m4trace:configure.in:24: -1- AC_SUBST([POSUB])
 m4trace:configure.in:24: -1- AC_SUBST([MKINSTALLDIRS])
-m4trace:configure.in:44: -1- AC_CONFIG_FILES([
+m4trace:configure.in:27: -1- AC_CHECK_LIB([inews], [INEWS_getVersion], [LIBS="$LIBS -linews"], [{ { echo "$as_me:$LINENO: error: libinews not found" >&5
+echo "$as_me: error: libinews not found" >&2;}
+   { (exit 1); exit 1; }; }])
+m4trace:configure.in:45: -1- AC_CONFIG_FILES([
 Makefile
 src/Makefile
 po/Makefile.in
 ])
-m4trace:configure.in:44: -1- AC_SUBST([LIB@&t@OBJS], [$ac_libobjs])
-m4trace:configure.in:44: -1- AC_SUBST([LTLIBOBJS], [$ac_ltlibobjs])
+m4trace:configure.in:45: -1- AC_SUBST([LIB@&t@OBJS], [$ac_libobjs])
+m4trace:configure.in:45: -1- AC_SUBST([LTLIBOBJS], [$ac_ltlibobjs])
