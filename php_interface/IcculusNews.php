@@ -413,7 +413,7 @@ function news_parse_rdf($filename, &$digestarray, $max_items = 5)
 
     while ($count < $max_items)
     {
-        while (strstr(fgets($in, 4096), "<item") == false)
+        while (strstr(fgets($in, 4096), "<item rdf") == false)
         {
             if (feof($in))
                 break;
