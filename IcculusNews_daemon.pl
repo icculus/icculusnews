@@ -762,7 +762,7 @@ Hello, $user.
 
 __EOF__
 
-    open(MAILH, '|/var/qmail/bin/qmail-inject $email') or
+    open(MAILH, '|/usr/sbin/sendmail -t') or
         return("Failed to run qmail-inject: $!");
 
     if ( (not print MAILH $msg) or (not close(MAILH)) ) {
