@@ -176,7 +176,10 @@ function output_queue_rows($sock, $showall = 0)
     foreach ($query as $item)
     {
         if ((!$showall) && ($item['approved']))
-            continue;
+        {
+            if (!$item['deleted'])  // always show deleted items.
+                continue;
+        } // if
 
         $item_count++;
 
