@@ -732,12 +732,24 @@ sub change_queue {
 }
 
 
+sub can_change_queue {
+    my $newqueue = shift;
+
+    my $starting_queue = $queue;
+    my $starting_queue_rights = $current_queue_rights;
+    my $err = change_queue($newqueue);
+
+    # set this directly back.
+    $queue = $starting_queue;
+    $current_queue_rights = $starting_queue_rights;
+    return($err);
+}
+
+
 sub send_forgotten_password {
     my ($user, $email, $pword) = @_;
 
     $email = $1 if ($email =~ /\A(.*)\Z/); # untaint email address var.
-
-
 
     my $msg = <<__EOF__;
 From: $admin_email
@@ -1072,7 +1084,8 @@ $commands{'MOVEITEM'} = sub {
         return(1);
     }
 
-    # !!! FIXME: User should have permission to access $newqueue.
+    my $err = can_change_queue($newqueue);
+    report_error($err), return 1 if defined $err;
 
     my $link = get_database_link();
     my $sql = "update $dbtable_items set queueid=$newqueue" .
