@@ -88,6 +88,14 @@ use constant syslogAll      => 0xFFFFFFFF;
 #  (see constants, above)
 my $use_syslog = syslogDaemon;
 
+# Set this to name of your site. Some daemon messages and forgotten password
+#  emails will include it.
+my $sitename = 'icculus.org';
+
+# Set this to the email address for the guy that takes care of problems.
+#  Some error messages will include it.
+my $admin_email = 'newsmaster@icculus.org';
+
 # Set this to the number of seconds you'd like to delay before responding to
 #  an incorrect authentication. The longer the delay, the more you frustrate
 #  crackers that are trying to brute-force their way into someone else's
@@ -200,6 +208,20 @@ my $default_queue_flags = 0;
 # If the default queue is 0, the web interface takes users to the "post"
 #  action by default, instead of the queue view.
 my $default_queue = 0;
+
+# This is the minimum number of characters that will be used when generating
+#  a new password to replace a forgotten one. Eight is usually reasonable.
+my $forgotten_password_minsize = 8;
+
+# This is the maximum number of characters that will be used when generating
+#  a new password to replace a forgotten one. Ten to twelve is usually
+#  reasonable.
+my $forgotten_password_maxsize = 12;
+
+# Set this to the name of a device to read random data from. If you don't have
+#  such a device (not on a Unix box or something), set it to undef to just
+#  use the built-in rand() function.
+my $random_device = '/dev/urandom';
 
 # This is the host to connect to for database access.
 my $dbhost = 'localhost';
@@ -701,6 +723,72 @@ sub change_queue {
     }
 
     return(undef); # no error.
+}
+
+
+sub send_forgotten_password {
+    my ($user, $email, $pword) = @_;
+
+    $email = $1 if ($email =~ /\A(.*)\Z/); # untaint email address var.
+
+
+
+    my $msg = <<__EOF__;
+From: $admin_email
+Reply-To: $admin_email
+To: $email
+Subject: Forgotten IcculusNews password.
+
+Hello, $user.
+
+ This is the IcculusNews daemon at $sitename. Someone, possibly you, has
+  told us that the account password associated with this email address has
+  been forgotten. In response, we have chosen a new password for the account.
+  If it wasn't you, don't worry; the smart-ass who entered the forgotten
+  password request does not have your newly-generated password, unless they
+  are reading this email.
+
+ Please log in to IcculusNews with the following password and change it to
+  something else. The sooner the better, too, since this email was probably
+  sent unencrypted across the Internet, and we're paranoid about wiretaps and
+  packet sniffers.
+
+     Username     : $user
+     New Password : $pword
+
+--The McManagement, $sitename.
+   $admin_email
+
+
+__EOF__
+
+    open(MAILH, '|/var/qmail/bin/qmail-inject $email') or
+        return("Failed to run qmail-inject: $!");
+
+    if ( (not print MAILH $msg) or (not close(MAILH)) ) {
+	my $err = "Failed to write to qmail-inject pipe; $!";
+	close(MAILH);
+        return($err);
+    }
+
+    return(undef);  # no error.
+}
+
+
+sub generate_pword {
+    my $retval = '';
+    my $diff = $forgotten_password_maxsize - $forgotten_password_minsize;
+    my $pwordbytes = $forgotten_password_minsize + int(rand($diff + 1));
+
+    my $dev = ((defined $random_device) and (open(RANDH, '<', $random_device)));
+    while ($pwordbytes > 0) {
+        my $idx = int((($dev) ? 62.0 * ord(getc(RANDH)) / 256.0 : rand(62)));
+	$retval .= (0..9, 'A'..'Z', 'a'..'z')[$idx];
+        $pwordbytes--;
+    }
+
+    close(RANDH) if ($dev);
+    return($retval);
 }
 
 
@@ -1281,9 +1369,45 @@ $commands{'GETRDF'} = sub {
 
 $commands{'FORGOTPASSWORD'} = sub
 {
-    # !!! FIXME: Implement this.
     my $args = shift;
-    report_error('Not yet implemented');
+    my ($user, $email) = (undef, undef);
+    if (defined $args) {
+        ($user, $email) = $args =~ /\A\"(.+?)\"\s*\"(.+?)\"\Z/
+    }
+
+    if ((not defined $user) or (not defined $email)) {
+	report_error('USAGE: FORGOTPASSWORD <"user"> <"email">');
+        return(1);
+    }
+
+    my $pword = generate_pword();
+    my $err = undef;
+    my $link = get_database_link();
+    my $u = $link->quote($user);
+    my $e = $link->quote($email);
+    my $sql = "select id from $dbtable_users" .
+	      " where email like $e and name like $u";
+    my $sth = $link->prepare($sql);
+    if (not $sth->execute()) {
+        report_error("can't execute the query: $sth->errstr");
+        return(1);
+    }
+    my @row = $sth->fetchrow_array();
+    $sth->finish();
+    $err = "Can't find a matching user/email." if (not @row);
+    $err = send_forgotten_password($user, $email, $pword) if (not defined $err);
+    if (defined $err) {
+        $err .= " Please talk to $admin_email for further assistance.";
+        report_error($err);
+    } else {
+	my $id = $row[0];
+	#print("id is [$id], pword is [$pword].\n");
+	my $cryptedpw = $link->quote(crypt($pword, new_crypt_salt()));
+	$sql = "update $dbtable_users set password=$cryptedpw where id=$id";
+	$link->do($sql);  # This has to work; we already sent the email. (*shrug*)
+        report_success("Helpful Phriendly info sent to $email ...");
+    }
+
     return(1);
 };
 
