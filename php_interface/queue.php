@@ -511,8 +511,52 @@ function output_login_widgets($next_action = 'view')
 
     echo <<<EOF
 
+    <script language="javascript">
+    <!--
+        function trim(inputString)
+        {
+            var retValue = inputString;
+            var ch = retValue.substring(0, 1);
+            while (ch == " ")
+            {
+                retValue = retValue.substring(1, retValue.length);
+                ch = retValue.substring(0, 1);
+            } // while
+
+            ch = retValue.substring(retValue.length-1, retValue.length);
+            while (ch == " ")
+            {
+                retValue = retValue.substring(0, retValue.length-1);
+                ch = retValue.substring(retValue.length-1, retValue.length);
+            } // while
+
+            return retValue;
+        } // trim
+
+
+        function check_login_fields()
+        {
+            if (trim(document.loginform.form_user.value) == "")
+            {
+                alert("Please enter a username.");
+                return(false);
+            } // if
+
+            if (trim(document.loginform.form_pass.value) == "")
+            {
+                alert("Please enter a password.");
+                return(false);
+            } // if
+
+            return(true);
+        } // check_login_fields
+    // -->
+    </script>
+
     <center>
-      <form method="post" action="$PHP_SELF?action=login">
+      <form name="loginform" method="post"
+            onsubmit="return check_login_fields();"
+            action="$PHP_SELF?action=login">
         <input type="hidden" name="form_next" value="$next_action">
         <table border="1">
           <tr>
@@ -810,15 +854,21 @@ function do_login($next_action = 'view')
         output_login_widgets($next_action);
     else
     {
-        $sock = NULL;
-        // !!! FIXME: tweak get_connected() so we can use it here.
-        $err = news_login($sock, $daemon_host, $daemon_port,
-                          $form_user, $form_pass);
+        $err = false;
+        if ( (trim($form_user) == '') || (trim($form_pass) == '') )
+            $err = "Please enter all fields.";
+        else
+        {
+            $sock = NULL;
+            // !!! FIXME: tweak get_connected() so we can use it here.
+            $err = news_login($sock, $daemon_host, $daemon_port,
+                              $form_user, $form_pass);
 
-        if (!$err)
-            $err = news_get_userinfo($sock, $uid, $qid);
+            if (!$err)
+                $err = news_get_userinfo($sock, $uid, $qid);
 
-        news_logout($sock);
+            news_logout($sock);
+        } // else
 
         if ($err)
         {
