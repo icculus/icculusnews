@@ -4,6 +4,8 @@ session_start();
 
 require './IcculusNews.php';
 
+$newsmaster_name = 'Ryan';
+$newsmaster_email = 'newsmaster@icculus.org';
 $daemon_host = 'localhost';
 $daemon_port = 263;
 
@@ -1043,16 +1045,151 @@ function do_post()
 
 function do_forgotpw()
 {
-    echo <<<EOF
+    global $form_forgot_submit;
+    global $form_forgot_uname, $form_forgot_email;
+    global $daemon_host, $daemon_port;
+    global $newsmaster_name, $newsmaster_email;
 
-<center>
-  <p><font color="#FF0000">Not implemented yet!</font></p>
-  <p>Please <a href="mailto:icculus@clutteredmind.org">email Ryan</a> and
-     he'll reset your password for you. Hopefully this will be automated
-     soon.</p>
-</center>
+    $output_widgets = true;
+    $err = NULL;
+    if (isset($form_forgot_submit))
+    {
+        if ( (!$form_forgot_uname) || (!$form_forgot_email) )
+            $err = "Please enter all fields.";
+
+        else if (strpos($form_forgot_email, '@') === false)
+        {
+            $err = "Invalid email address.";
+        } // else if
+
+        else
+        {
+            if ($err = news_login($sock, $daemon_host, $daemon_port))
+                $err = "Login failed: $err.";
+            else
+            {
+                $err = news_forgotpassword($sock, $form_forgot_uname,
+                                           $form_forgot_email);
+                if ($err)
+                    $err = "Problem! $err";
+            } // else
+
+            news_logout($sock);
+        } // else
+
+        if ($err == NULL)
+        {
+            $output_widgets = false;
+            print("<center>\n");
+            print("<font color=\"#0000FF\">Password reset!</font><br>\n");
+            print("A new password has been emailed to you.<br>\n");
+            print("You can go <a href=\"$PHP_SELF?action=login\">here</a>");
+            print(" to login with the new password.\n</center>\n");
+        } // if
+        else
+        {
+            print("<center><font color=\"#FF0000\">$err</font></center>\n");
+        } // else
+    } // if
+
+    if ($output_widgets)
+    {
+        echo <<<EOF
+
+          <script language="javascript">
+          <!--
+            function forgotfocus()
+            {
+                document.forgotform.form_forgot_uname.focus();
+            } // newuserfocus
+
+            function trim(inputString)
+            {
+                var retValue = inputString;
+                var ch = retValue.substring(0, 1);
+                while (ch == " ")
+                {
+                    retValue = retValue.substring(1, retValue.length);
+                    ch = retValue.substring(0, 1);
+                } // while
+
+                ch = retValue.substring(retValue.length-1, retValue.length);
+                while (ch == " ")
+                {
+                    retValue = retValue.substring(0, retValue.length-1);
+                    ch = retValue.substring(retValue.length-1, retValue.length);
+                } // while
+
+                return retValue;
+            } // trim
+
+            function check_forgot_fields()
+            {
+                if (trim(document.forgotform.form_forgot_uname.value) == "")
+                {
+                    alert("Please enter a username.");
+                    return(false);
+                } // if
+
+                if (trim(document.forgotform.form_forgot_email.value) == "")
+                {
+                    alert("Please enter a valid email address.");
+                    return(false);
+                } // if
+
+                if (document.forgotform.form_forgot_email.value.indexOf('@') == -1)
+                {
+                    alert("Please enter a valid email address.");
+                    return(false);
+                } // if
+
+                return(true);
+            } // check_forgot_fields
+
+          //-->
+          </script>
+
+          <center>
+            <p>
+            <table width="75%" border="1"><tr><td align="center">
+            Please enter your IcculusNews username, and the email address
+            you used when you created the account, so we know who you are, and
+            that it's really you. An email will be sent to that address with
+            a randomly-generated password so you can log in again.
+            <p>
+            If you are no longer have access to that email address or you
+            can't remember what address you used, you'll have to
+            <a href="mailto:$newsmaster_email">email $newsmaster_name</a> and
+            have your password manually reset.
+            </td></tr></table>
+
+            <p>
+            <form name="forgotform"
+                  method="post"
+                  onsubmit="return check_forgot_fields();"
+                  action="$PHP_SELF?action=forgotpw">
+              <table border="0">
+                <tr>
+                  <td align="right">Username:</td>
+                  <td><input type="text" name="form_forgot_uname" value="$form_forgot_uname"></td>
+                </tr>
+                <tr>
+                  <td align="right">Email address:</td>
+                  <td><input type="text" name="form_forgot_email" value="$form_forgot_email"></td>
+                </tr>
+                <tr>
+                  <td align="center" colspan="2">
+                    <input type="submit" name="form_forgot_submit" value="Go">
+                    <input type="reset" value="Clear fields">
+                  </td>
+                </tr>
+              </table>
+            </form>
+          </center>
 
 EOF;
+
+    } // if
 } // do_forgotpw
 
 
@@ -1187,7 +1324,7 @@ function do_newuser()
                 } // if
 
                 return(true);
-            } // check_login_fields
+            } // check_newuser_fields
 
           //-->
           </script>
@@ -1271,6 +1408,8 @@ function body_attributes($action)
         print('onLoad="loginfocus();"');
     else if (strcmp($action, 'newuser') == 0)
         print('onLoad="newuserfocus();"');
+    else if (strcmp($action, 'forgotpw') == 0)
+        print('onLoad="forgotfocus();"');
 } // body_attributes
 
 // mainline/setup.
