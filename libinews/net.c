@@ -177,7 +177,8 @@ Sint8 INEWS_auth(const char *username, const char *password) {
 Sint8 INEWS_retrQueueInfo() {
 	QueueInfo *temp_ptr;
 	char temp_data[256];
-	GList *temp_iter;
+	/*GList *temp_iter;*/
+	IList *temp_iter;
 	Uint8 record_pos = 0;
 
 	if (!serverstate.connected) {
@@ -206,7 +207,8 @@ Sint8 INEWS_retrQueueInfo() {
 			record_pos = 1;
 		} else {
 			temp_ptr->name = g_strdup(temp_data);
-			qinfoptr = g_list_append(qinfoptr, temp_ptr);
+			/*qinfoptr = g_list_append(qinfoptr, temp_ptr);*/
+			qinfoptr = ilist_append_data(qinfoptr, temp_ptr);
 			record_pos = 0;
 		}
 	}
@@ -250,7 +252,8 @@ Sint8 INEWS_retrQueueInfo() {
 			}
 		}
 
-		temp_iter = g_list_next(temp_iter);
+		/*temp_iter = g_list_next(temp_iter);*/
+		temp_iter = ilist_next(temp_iter);
 	}
 
 	goto end_success;
@@ -458,13 +461,140 @@ Sint8 INEWS_submitArticle(char *title, char *body) {
 	FUNC_END(0, -1);
 }
 
+Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve) {
+	char tempstring[256];
+				
+	if (!serverstate.connected) {
+		__inews_errno = ERR_DISCONNECTED;
+		goto end_failure;
+	}
+
+	if (!serverstate.qid) {
+		__inews_errno = ERR_NOSUCHQUEUE;
+		goto end_failure;
+	}
+
+	memset(tempstring, 0, 256);
+	
+	if (approve) {
+		sprintf(tempstring, "APPROVE %i\n", aid);
+	} else {
+		sprintf(tempstring, "UNAPPROVE %i\n", aid);
+	}
+
+	pthread_mutex_lock(&net_mutex);
+	
+	__write_block(tempstring);
+
+	memset(tempstring, 0, 256);
+	
+	if (__read_line(tempstring, 255) < 0) {
+		goto end_failure;
+	}
+
+	switch(tempstring[0]) {
+		case '+':
+			goto end_success;
+			break;
+		case '-':
+			switch (tempstring[2]) {
+				case 'c': /* "can't execute query" */
+					__inews_errno = ERR_SERVFAIL;
+					INEWS_disconnect();
+					break;
+				case 'Y': /* "You don't have permission" */
+					__inews_errno = ERR_UNAUTHORIZED;
+					break;
+				case 'F': /* "Failed to toggle approval flag" */
+					__inews_errno = ERR_GENERIC;
+					break;
+				default:
+					__print_protocol_fuckery_message();
+					__inews_errno = ERR_GENERIC;
+			}
+			goto end_failure;
+			break;
+		default:
+			__print_protocol_fuckery_message();
+			__inews_errno = ERR_GENERIC;
+			goto end_failure;
+	}
+	
+	FUNC_END(0, -1);
+}
+
+Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool delete) {
+  char tempstring[256];
+
+	if (!serverstate.connected) {
+    __inews_errno = ERR_DISCONNECTED;
+    goto end_failure;
+  }
+
+  if (!serverstate.qid) {
+	  __inews_errno = ERR_NOSUCHQUEUE;
+	  goto end_failure;
+	}
+
+	memset(tempstring, 0, 256);
+
+	if (delete) {
+	  sprintf(tempstring, "DELETE %i\n", aid);
+	} else {
+	  sprintf(tempstring, "UNDELETE %i\n", aid);
+	}
+
+	pthread_mutex_lock(&net_mutex);
+
+	__write_block(tempstring);
+
+	memset(tempstring, 0, 256);
+
+	if (__read_line(tempstring, 255) < 0) {
+	  goto end_failure;
+	}
+
+	switch(tempstring[0]) {
+	  case '+':
+	    goto end_success;
+		  break;
+		case '-':
+		  switch (tempstring[2]) {
+		    case 'c': /* "can't execute query" */
+		      __inews_errno = ERR_SERVFAIL;
+		      INEWS_disconnect();
+		      break;
+		    case 'Y': /* "You don't have permission" */
+			    __inews_errno = ERR_UNAUTHORIZED;
+			    break;
+			  case 'F': /* "Failed to toggle deletion flag" */
+			    __inews_errno = ERR_GENERIC;
+          break;
+        default:
+	        __print_protocol_fuckery_message();
+	        __inews_errno = ERR_GENERIC;
+	    }
+		  goto end_failure;
+		  break;
+		default:
+		  __print_protocol_fuckery_message();
+		  __inews_errno = ERR_GENERIC;
+		  goto end_failure;
+	}
+
+  FUNC_END(0, -1);
+}
+
+
 void INEWS_disconnect() {
-	GList *qinfo_iter = qinfoptr;
+	/*GList *qinfo_iter = qinfoptr;*/
+	IList *qinfo_iter = qinfoptr;
 
 	if (!serverstate.connected) return;
 	
 	keep_nopping = 0;
 	pthread_join(nop_thread, NULL);
+	__write_block("QUIT\n");
 	close(fd);
 	serverstate.connected = FALSE;
 
@@ -478,7 +608,7 @@ void INEWS_disconnect() {
 	
 	while (1) {
 		__free_queue_info_list_element(qinfo_iter);
-		qinfo_iter = g_list_remove_link(qinfo_iter, qinfo_iter);
+		qinfo_iter = /*g_list_remove_link(qinfo_iter, qinfo_iter)*/ ilist_remove(qinfo_iter);
 		if (!qinfo_iter) break;
 	}
 }
