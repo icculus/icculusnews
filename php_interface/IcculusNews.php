@@ -499,4 +499,15 @@ function news_forgotpassword($sock, $user, $email)
     return(NULL);  // no error.
 } // news_forgotpassword
 
+
+function news_moveitem($sock, $itemid, $newqueueid)
+{
+    fputs($sock, "MOVEITEM $itemid $newqueueid\n");
+    $in = fgets($sock, 4096);
+    if ($in{0} != '+')
+        return(substr($in, 2));
+
+    return(NULL);  // no error.
+} // news_moveitem
+
 ?>
