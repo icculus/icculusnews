@@ -11,6 +11,15 @@
 #define _XOPEN_SOURCE
 #include <time.h>
 
+/*typedef unsigned char Uint8;
+typedef unsigned short Uint16;
+typedef unsigned int Uint32;
+typedef unsigned long long Uint64;
+typedef signed char Sint8;
+typedef signed short Sint16;
+typedef signed int Sint32;
+typedef signed long long Sint64;*/
+
 #define Uint8 unsigned char
 #define Uint16 unsigned short
 #define Uint32 unsigned int
@@ -77,9 +86,10 @@ typedef struct {
 #define ERR_UNAUTHORIZED -5		/* I cannot allow you to do that, Dave. */
 #define ERR_SERVFAIL -6				/* internal server failure */
 #define ERR_STORYTOOLONG -7		/* story was longer than the server wanted it to be; truncated. */
+#define ERR_NOSUCHARTICLE -8	/* article does not exist */
 		
 /* initialize the library */
-extern int INEWS_init();
+extern Sint8 INEWS_init();
 
 /* deinitialize the library */
 extern void INEWS_deinit();
@@ -94,16 +104,16 @@ extern char *INEWS_getServerVersion();
 extern char *INEWS_getHost();
 
 /* get the current remote port */
-extern int INEWS_getPort();
+extern Uint16 INEWS_getPort();
 
 /* get the current IcculusNews username */
 extern const char *INEWS_getUserName();
 
 /* get the current IcculusNews user ID */
-extern int INEWS_getUID();
+extern Uint16 INEWS_getUID();
 
 /* get the currently-selected IcculusNews queue ID */
-extern int INEWS_getQID();
+extern Uint16 INEWS_getQID();
 
 /* get detailed information on a chosen queue */
 extern QueueInfo *INEWS_getQueueInfo(int qid);
@@ -112,25 +122,25 @@ extern QueueInfo *INEWS_getQueueInfo(int qid);
 extern QueueInfo **INEWS_getAllQueuesInfo();
 
 /* get the error number of the last error to occur */
-extern int INEWS_getLastError();
+extern Sint8 INEWS_getLastError();
 
 /* connect to an IcculusNews server */
-extern int INEWS_connect(const char *hostname, Uint32 port);
+extern Sint8 INEWS_connect(const char *hostname, Uint32 port);
 
 /* retrieve queue information from the server */
-extern int INEWS_retrQueueInfo();
+extern Sint8 INEWS_retrQueueInfo();
 
 /* authenticate as a given user to the server */
-extern int INEWS_auth(const char *username, const char *password);
+extern Sint8 INEWS_auth(const char *username, const char *password);
 
 /* change the currently-selected queue */
-extern int INEWS_changeQueue(int qid);
+extern Sint8 INEWS_changeQueue(int qid);
 
 /* retrieve a digest of the currently-selected queue with n articles */
 extern ArticleInfo **INEWS_digest(int n);
 
 /* submit an article. OMG */
-extern int INEWS_submitArticle(char *title, char *body);
+extern Sint8 INEWS_submitArticle(char *title, char *body);
 
 /* free the memory dynamically allocated by a call to INEWS_digest */
 extern void INEWS_freeDigest(ArticleInfo **digest);

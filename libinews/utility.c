@@ -16,26 +16,32 @@ INEWS_Version *INEWS_getVersion() {
 }
 
 char *INEWS_getServerVersion() {
+	if (!serverstate.connected) return NULL;
 	return serverstate.verstring;				
 }
 
 char *INEWS_getHost() {
+	if (!serverstate.connected) return NULL;
 	return serverstate.hostname;
 }
 
-int INEWS_getPort() {
+Uint16 INEWS_getPort() {
+	if (!serverstate.connected) return -1;
 	return serverstate.port;
 }
 
 const char *INEWS_getUserName() {
+	if (!serverstate.connected) return NULL;
 	return serverstate.username;
 }
 
-int INEWS_getUID() {
+Uint16 INEWS_getUID() {
+	if (!serverstate.connected) return -1;
 	return serverstate.uid;
 }
 
-int INEWS_getQID() {
+Uint16 INEWS_getQID() {
+	if (!serverstate.connected) return -1;
 	return serverstate.qid;
 }
 
@@ -95,7 +101,7 @@ void INEWS_freeQueuesInfo(QueueInfo **qinfo) {
 	free(qinfo);
 }
 
-int INEWS_getLastError() {
+Sint8 INEWS_getLastError() {
 	return __inews_errno;
 }
 
@@ -121,8 +127,34 @@ void __print_protocol_fuckery_message() {
   backtrace(last_call, 2);
   last_call_name = (char **)backtrace_symbols(last_call, 2);
 
-  printf("Guru meditation error in %s; unexpected server response (try French?)\n",
+  printf("Guru meditation error in %s: unexpected server response (try French?)\n",
          last_call_name[1]);
 
   free(last_call_name);
+}
+
+Sint8 __sem_lock(int sem) {
+	struct sembuf buf = {0, -1, SEM_UNDO};
+
+	if (semop(sem, &buf, 1) == -1) {
+		printf("Guru meditation error: semaphore 0x%x refused to lock (%s)\n", sem, 
+					 strerror(errno));
+		__inews_errno = ERR_GENERIC;
+		return -1;
+	}
+
+	return 0;
+}
+
+Sint8 __sem_unlock(int sem) {
+	struct sembuf buf = {0, 1, SEM_UNDO};
+
+	if (semop(sem, &buf, 1) == -1) {
+		printf("Guru meditation error: semaphore 0x%x refused to unlock (%s)\n", sem,
+					 strerror(errno));
+		__inews_errno = ERR_GENERIC;
+		return -1;
+	}
+
+	return 0;
 }
