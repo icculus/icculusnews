@@ -132,29 +132,3 @@ void __print_protocol_fuckery_message() {
 
   free(last_call_name);
 }
-
-Sint8 __sem_lock(int sem) {
-	struct sembuf buf = {0, -1, SEM_UNDO};
-
-	if (semop(sem, &buf, 1) == -1) {
-		printf("Guru meditation error: semaphore 0x%x refused to lock (%s)\n", sem, 
-					 strerror(errno));
-		__inews_errno = ERR_GENERIC;
-		return -1;
-	}
-
-	return 0;
-}
-
-Sint8 __sem_unlock(int sem) {
-	struct sembuf buf = {0, 1, SEM_UNDO};
-
-	if (semop(sem, &buf, 1) == -1) {
-		printf("Guru meditation error: semaphore 0x%x refused to unlock (%s)\n", sem,
-					 strerror(errno));
-		__inews_errno = ERR_GENERIC;
-		return -1;
-	}
-
-	return 0;
-}
