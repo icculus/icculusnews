@@ -149,7 +149,7 @@ extern Sint8 INEWS_submitArticle(char *title, char *body);
 Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve);
 
 /* change the deletion status of article aid */
-Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool delete);
+Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool deleteflag);
 
 /* free the memory dynamically allocated by a call to INEWS_digest */
 extern void INEWS_freeDigest(ArticleInfo **digest);
