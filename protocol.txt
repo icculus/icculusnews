@@ -93,8 +93,10 @@ Article Editation:
 
 Disconnection:
 
---> QUIT
-<-- + kthxbye
+--> QUIT						(MSG_QUIT)
+<-- + kthxbye						(MSG_BYE)
 
-	The server 
+	MSG_QUIT indicates that the client has requested to close the
+connection. The server should comply and reply with a MSG_BYE before
+calling close().
 
