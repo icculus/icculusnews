@@ -432,7 +432,26 @@ function handle_news_queue_commands()
             $iccnews_userqueue = $form_qid;
     } // if
 
-    else if ( ($form_moveqid) and (isset($form_qid)) )
+    else if ($form_purgeall)
+    {
+        $err = get_connected($sock);
+        if ( ($err) || ($err = news_purgeall($sock)) )
+        {
+            echo "<font color=\"#FF0000\">failed to purge items.";
+            echo " $err</font><br>\n";
+        } // if
+    } // else if
+
+
+    // rest of these need at least one queue item selected...
+
+    if (!isset($itemid))  // nothing selected? Bail out.
+    {
+        news_logout($sock);
+        return;
+    }
+
+    if ( ($form_moveqid) and (isset($form_qid)) )
     {
         $err = get_connected($sock);
 
@@ -445,7 +464,7 @@ function handle_news_queue_commands()
                 echo " $err</font><br>\n";
             } // if
         } // foreach
-    } // else if
+    } // if
 
     else if ($form_delete)
     {
@@ -487,16 +506,6 @@ function handle_news_queue_commands()
                 echo " $err</font><br>\n";
             } // if
         } // for
-    } // else if
-
-    else if ($form_purgeall)
-    {
-        $err = get_connected($sock);
-        if ( ($err) || ($err = news_purgeall($sock)) )
-        {
-            echo "<font color=\"#FF0000\">failed to purge items.";
-            echo " $err</font><br>\n";
-        } // if
     } // else if
 
     else if ($form_approve)
