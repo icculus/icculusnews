@@ -85,7 +85,7 @@ function output_archive($news_queue, $host = 'localhost', $profile = false)
                 $err = "Failed to get queue info: $err.";
             else
             {
-                if ($err = news_digest($sock, $digestarray, 9999999))
+                if ($err = news_digest($sock, $digestarray, false, 9999999))
                     $err = "Failed to get digest: $err.";
             } // else
         } // else

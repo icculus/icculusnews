@@ -160,7 +160,7 @@ function output_queue_rows($sock, $showall = 0)
     else
     {
         // !!! FIXME: Grab these in chunks?
-        if ($err = news_digest($sock, $query, 9999999))
+        if ($err = news_digest($sock, $query, false, 9999999))
             $err = "Failed to get digest: $err.";
     } // else
 

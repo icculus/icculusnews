@@ -34,7 +34,7 @@ runs on average _TWENTY_ times faster and takes less resources.
           else
           {
               // get the five newest news items...
-              if ($err = news_digest($sock, $digestarray, 5))
+              if ($err = news_digest($sock, $digestarray, false, 5))
                   $err = "Failed to get digest: $err.";
           } // else
       } // else
