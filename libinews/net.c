@@ -318,7 +318,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
     char tempstring[256], off_str[32];
     ArticleInfo **retval;
     ArticleInfo *tempinfo, *cacheptr;
-    int record_pos, count = 0;
+    int record_pos = 0, count = 0;
     bool eor = FALSE;
     int requested_offset = offset;
 
@@ -337,7 +337,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
         ArticleInfo *tempptr = (ArticleInfo *)malloc(sizeof(ArticleInfo));
         ArticleLinkedListHeader *curdata = ((ArticleLinkedListHeader *)(ptr->data));
         if (curdata->qid == INEWS_getQID())
-            for (IList *aptr = curdata->head; aptr; aptr = ilist_next(aptr)) {
+            for (IList *aptr = curdata->head; aptr; aptr = ilist_next(aptr) && count < n) {
                 if (requested_offset) {
                     if (((ArticleInfo *)(aptr->data))->aid < requested_offset) {
                         memcpy(tempptr, aptr->data, sizeof(ArticleInfo));
@@ -370,7 +370,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
 	goto end_failure;
     }
 
-    while (count < n) {
+    while (count <= n) {
         tempinfo = (ArticleInfo *)malloc(sizeof(ArticleInfo));
         cacheptr = (ArticleInfo *)malloc(sizeof(ArticleInfo));
 
@@ -386,7 +386,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
 	    if (!strcmp(tempstring, ".")) {
 		eor = TRUE;
 		break;
-            }
+	    }
 
             /* we have to make a full copy for the cache, so that we're not
              * dependent on the existence of the temporary copy */
@@ -394,7 +394,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
 	    switch (++record_pos) {
             case 1:
                 tempinfo->aid = atoi(tempstring);
-                cacheptr->aid = cacheptr->aid; break;
+                cacheptr->aid = tempinfo->aid; break;
             case 2:
                 tempinfo->title = strdup(tempstring);
                 cacheptr->title = strdup(tempstring); break;
@@ -415,7 +415,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
                 cacheptr->approved = tempinfo->approved; break;
             case 8:
                 tempinfo->deleted = atoi(tempstring);
-                tempinfo->deleted = tempinfo->deleted; break;
+                cacheptr->deleted = tempinfo->deleted; break;
 	    }
 	}
 
@@ -446,7 +446,8 @@ ArticleInfo **INEWS_digest(int offset, int n) {
 
     /* if we hit a premature end-of-record, then we'll need to shrink down our
      * return to prevent problems when we try to free it */
-    retval = (ArticleInfo **)realloc(retval, (count * sizeof(ArticleInfo *)));
+    retval = (ArticleInfo **)realloc(retval, ((count+1) * sizeof(ArticleInfo *)));
+    retval[count] = NULL;
 
     goto end_success;
 
