@@ -739,14 +739,14 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
     } // if
 
     $editor = '';
-    if (isset($_REQUEST['fckeditor']))
+    if (isset($_REQUEST['useeditor']))
     {
         $t = addslashes($item[text]);
-	$t = str_replace("\r", '\r', $t); 
-	$t = str_replace("\n", '\n', $t); 
-	$t = str_replace("&lt;", '<', $t); 
-	$t = str_replace("&gt;", '>', $t); 
-	$t = str_replace("&amp;", '&', $t); 
+        $t = str_replace("\r", '\r', $t);
+        $t = str_replace("\n", '\n', $t);
+        $t = str_replace("&lt;", '<', $t);
+        $t = str_replace("&gt;", '>', $t);
+        $t = str_replace("&amp;", '&', $t);
         $editor = "<script type='text/javascript'>\n" .
                   "<!--\n" .
                   "var oFCKeditor = new FCKeditor('form_text');\n" .
@@ -1485,6 +1485,9 @@ function body_attributes($action)
 
 safe_globals();  // !!! FIXME: Remove this!
 
+if ((isset($_REQUEST['useeditor'])) && (!file_exists("FCKeditor")))
+    unset($_REQUEST['useeditor']);
+
 if (!isset($action))
 {
     if (!is_logged_in($u, $p, $q))
@@ -1501,7 +1504,7 @@ else if (!isset($actions[$action]))
 } // else if
 
 $jsheaders = '';
-if (isset($_REQUEST['fckeditor']))
+if (isset($_REQUEST['useeditor']))
     $jsheaders .= '<script type="text/javascript" src="FCKeditor/fckeditor.js"></script>';
 
 ?>
