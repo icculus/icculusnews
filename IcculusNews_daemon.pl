@@ -501,32 +501,19 @@ sub generate_rdf {
     $sth = $link->prepare($sql);
     $sth->execute() or die "can't execute the query: $sth->errstr";
 
-    my $rdf = <<__EOF__;
-<?xml version="1.0" encoding="utf-8"?>
-
-<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-         xmlns="http://purl.org/rss/1.0/">
-
-  <channel rdf:about="$rdfurl">
-    <title>$queuename</title>
-    <link>$siteurl</link>
-    <archives>$itemarcurl</archives>
-    <description>$queuedesc</description>
-  </channel>
-
-__EOF__
-
+    my $channelimg = '';
+    my $rdfimg = '';
     if (defined $rdfimgurl) {
-        $rdf .= <<__EOF__;
-  <image>
-    <title>$queuename</title>
-    <url>$rdfimgurl</url>
-    <link>$siteurl</link>
-  </image>
-
-__EOF__
+        $channelimg = "<image rdf:resource=\"$rdfimgurl\" />";
+        $rdfimg .=   "<image>\n";
+        $rdfimg .= "    <title>$queuename</title>\n";
+        $rdfimg .= "    <url>$rdfimgurl</url>\n";
+        $rdfimg .= "    <link>$siteurl</link>\n";
+        $rdfimg .= "  </image>";
     }
 
+    my $rdfitems = '';
+    my $digestitems = '';
     while (my @row = $sth->fetchrow_array()) {
         my $authorid     = $row[0];
         my $itemid       = $row[1];
@@ -539,21 +526,49 @@ __EOF__
         my $viewurl = $itemviewurl;
         1 while ($viewurl =~ s/\%id/$itemid/);
 
-        $rdf .= "  <item rdf:about=\"$viewurl\">\n";
-        $rdf .= "    <title>$itemtitle</title>\n";
-        $rdf .= "    <link>$viewurl</link>\n";
-        $rdf .= "    <author>$authorname</author>\n";
-        $rdf .= "    <authorid>$authorid</authorid>\n";
-        $rdf .= "    <itemid>$itemid</itemid>\n";
-        $rdf .= "    <postdate>$itempostdate</postdate>\n";
-        $rdf .= "    <ipaddr>$ipaddr</ipaddr>\n";
-        $rdf .= "    <approved>$approved</approved>\n";
-        $rdf .= "    <deleted>$deleted</deleted>\n";
-        $rdf .= "  </item>\n";
+        $digestitems .= "<rdf:li rdf:resource=\"$viewurl\" />\n        ";
+
+        $rdfitems .= "\n";
+        $rdfitems .= "  <item rdf:about=\"$viewurl\">\n";
+        $rdfitems .= "    <title>$itemtitle</title>\n";
+        $rdfitems .= "    <link>$viewurl</link>\n";
+        $rdfitems .= "    <author>$authorname</author>\n";
+        $rdfitems .= "    <authorid>$authorid</authorid>\n";
+        $rdfitems .= "    <itemid>$itemid</itemid>\n";
+        $rdfitems .= "    <postdate>$itempostdate</postdate>\n";
+        $rdfitems .= "    <ipaddr>$ipaddr</ipaddr>\n";
+        $rdfitems .= "    <approved>$approved</approved>\n";
+        $rdfitems .= "    <deleted>$deleted</deleted>\n";
+        $rdfitems .= "  </item>";
     }
     $sth->finish();
 
-    $rdf .= "</rdf:RDF>\n\n";
+    my $rdf = <<__EOF__;
+<?xml version="1.0" encoding="utf-8"?>
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns="http://purl.org/rss/1.0/">
+
+  <channel rdf:about="$rdfurl">
+    <title>$queuename</title>
+    <link>$siteurl</link>
+    <archives>$itemarcurl</archives>
+    <description>$queuedesc</description>
+    $channelimg
+    <items>
+      <rdf:Seq>
+        $digestitems
+      </rdf:Seq>
+    </items>
+  </channel>
+
+  $rdfimg
+  $rdfitems
+</rdf:RDF>
+
+
+__EOF__
+
     return(undef, $rdf, $rdffile);
 }
 
