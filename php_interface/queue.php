@@ -9,6 +9,50 @@ $newsmaster_email = 'newsmaster@icculus.org';
 $daemon_host = 'localhost';
 $daemon_port = 263;
 
+$actions = array(
+    'login' => do_login,
+    'logout' => do_logout,
+    'whoami' => do_whoami,
+    'view' => do_view,
+    'post' => do_post,
+    'newuser' => do_newuser,
+    'forgotpw' => do_forgotpw,
+    'createqueue' => do_createqueue,
+    'unknown' => do_unknown
+);
+
+// register variable names as "safe" globals...i.e. - we don't care WHERE 
+//  they are set, even if a hacker changes them with GETs or POSTs...
+// !!! FIXME: THIS REALLY NEEDS TO BE REMOVED!
+$allowed_globals = array('itemid', 'form_delete', 'form_undelete',
+                         'form_purge', 'form_purgeall', 'form_approve',
+                         'form_unapprove', 'form_qid', 'form_chqid',
+                         'form_moveqid', 'form_user', 'form_next',
+                         'form_postdate', 'form_postanon',
+                         'form_newuser_submit', 'form_new_uname',
+                         'form_new_pword1', 'form_new_pword2',
+                         'form_new_email', 'form_forgot_submit',
+                         'form_forgot_uname', 'form_forgot_email',
+                         'editid', 'form_preview', 'form_fromuser',
+                         'form_title', 'form_text', 'form_postdate',
+                         'form_qid', 'form_postanon', 'showall',
+                         'form_pass', 'form_submit',
+                         'form_cancel', 'action');
+
+function safe_globals()
+{
+    global $allowed_globals;
+    foreach ($allowed_globals as $name)
+    {
+        if (isset($_REQUEST[$name]))
+        {
+            global $$name;
+            $$name = $_REQUEST[$name];
+        } // if
+    } // foreach
+} // safe_globals
+
+
 function output_site_header()
 {
 echo <<< EOF
@@ -86,36 +130,27 @@ function is_logged_in(&$uname, &$pass, &$queue)
 {
     $uname = $pass = $queue = NULL;
 
-    if (!session_is_registered('iccnews_username'))
+    if (!isset($_SESSION['iccnews_username']))
         return(false);
 
-    if (!isset($GLOBALS['HTTP_SESSION_VARS']['iccnews_username']))
+    if ($_SESSION['iccnews_username'] === false)
         return(false);
 
-    if ($GLOBALS['HTTP_SESSION_VARS']['iccnews_username'] === false)
+    if (!isset($_SESSION['iccnews_userpass']))
         return(false);
 
-    if (!session_is_registered('iccnews_userpass'))
+    if ($_SESSION['iccnews_userpass'] === false)
         return(false);
 
-    if (!isset($GLOBALS['HTTP_SESSION_VARS']['iccnews_userpass']))
+    if (!isset($_SESSION['iccnews_userqueue']))
         return(false);
 
-    if ($GLOBALS['HTTP_SESSION_VARS']['iccnews_userpass'] === false)
+    if ($_SESSION['iccnews_userqueue'] === false)
         return(false);
 
-    if (!session_is_registered('iccnews_userqueue'))
-        return(false);
-
-    if (!isset($GLOBALS['HTTP_SESSION_VARS']['iccnews_userqueue']))
-        return(false);
-
-    if ($GLOBALS['HTTP_SESSION_VARS']['iccnews_userqueue'] === false)
-        return(false);
-
-    $uname = $GLOBALS['HTTP_SESSION_VARS']['iccnews_username'];
-    $pass = $GLOBALS['HTTP_SESSION_VARS']['iccnews_userpass'];
-    $queue = $GLOBALS['HTTP_SESSION_VARS']['iccnews_userqueue'];
+    $uname = $_SESSION['iccnews_username'];
+    $pass = $_SESSION['iccnews_userpass'];
+    $queue = $_SESSION['iccnews_userqueue'];
 
     return(true);
 } // is_logged_in
@@ -420,7 +455,6 @@ function handle_news_queue_commands()
     global $itemid, $form_delete, $form_undelete, $form_purge, $form_purgeall;
     global $form_approve, $form_unapprove;
     global $form_qid, $form_chqid, $form_moveqid;
-    global $iccnews_userqueue;
 
     // create some local variables.
     $sock = NULL;
@@ -429,7 +463,7 @@ function handle_news_queue_commands()
     if ( ($form_chqid) and (isset($form_qid)) )
     {
         if (is_logged_in($u, $p, $q))
-            $iccnews_userqueue = $form_qid;
+            $_SESSION['iccnews_userqueue'] = $form_qid;
     } // if
 
     else if ($form_purgeall)
@@ -545,7 +579,7 @@ function output_login_widgets($next_action = 'view')
     global $SERVER_NAME, $REQUEST_URI, $PHP_SELF;
     global $form_user, $form_next;
 
-    if (!isset($GLOBALS['HTTPS']))
+    if (!isset($_SERVER['HTTPS']))
     {
          $href = "https://${SERVER_NAME}${REQUEST_URI}";
          print "<p align=\"center\">You need a secure connection to log in.</p>\n";
@@ -877,30 +911,15 @@ function do_login($next_action = NULL)
     // !!! FIXME: tweak get_connected() so we don't need these globals here.
     global $daemon_host, $daemon_port;
 
-    global $iccnews_username, $iccnews_userpass, $iccnews_userqueue;
     global $form_user, $form_pass, $form_next;
     global $actions;
 
     if (!isset($next_action) && ($form_next))
         $next_action = $form_next;
 
-    if (!session_is_registered('iccnews_username'))
-    {
-        session_register('iccnews_username');
-        $iccnews_username = false;
-    } // if
-
-    if (!session_is_registered('iccnews_userpass'))
-    {
-        session_register('iccnews_userpass');
-        $iccnews_userpass = false;
-    } // if
-
-    if (!session_is_registered('iccnews_userqueue'))
-    {
-        session_register('iccnews_userqueue');
-        $iccnews_userqueue = false;
-    } // if
+    $_SESSION['iccnews_username'] = false;
+    $_SESSION['iccnews_userpass'] = false;
+    $_SESSION['iccnews_userqueue'] = false;
 
     if ( (!isset($form_user)) || (!isset($form_pass)) )
         output_login_widgets($next_action);
@@ -929,9 +948,9 @@ function do_login($next_action = NULL)
         } // if
         else
         {
-            $iccnews_username = $form_user;
-            $iccnews_userpass = $form_pass;
-            $iccnews_userqueue = $qid;
+            $_SESSION['iccnews_username'] = $form_user;
+            $_SESSION['iccnews_userpass'] = $form_pass;
+            $_SESSION['iccnews_userqueue'] = $qid;
             if ( (isset($next_action)) && (isset($actions[$next_action])) )
                 $actions[$next_action]();
             else
@@ -949,9 +968,11 @@ function do_login($next_action = NULL)
 function do_logout()
 {
     global $PHP_SELF;
-    global $iccnews_username, $iccnews_userpass, $iccnews_userqueue;
 
-    $iccnews_username = $iccnews_userpass = $iccnews_userqueue = NULL;
+    $_SESSION['iccnews_username'] = NULL;
+    $_SESSION['iccnews_userpass'] = NULL;
+    $_SESSION['iccnews_userqueue'] = NULL;
+
     session_unset();
     session_destroy();
 
@@ -1233,7 +1254,7 @@ function do_newuser()
     global $daemon_host, $daemon_port;
     global $SERVER_NAME, $REQUEST_URI;
 
-    if (!isset($GLOBALS['HTTPS']))
+    if (!isset($_SERVER['HTTPS']))
     {
          $href = "https://${SERVER_NAME}${REQUEST_URI}";
          print "<p align=\"center\">You need a secure connection for this.</p>\n";
@@ -1447,17 +1468,7 @@ function body_attributes($action)
 
 // mainline/setup.
 
-
-$actions = array();
-$actions['login'] = do_login;
-$actions['logout'] = do_logout;
-$actions['whoami'] = do_whoami;
-$actions['view'] = do_view;
-$actions['post'] = do_post;
-$actions['newuser'] = do_newuser;
-$actions['forgotpw'] = do_forgotpw;
-$actions['createqueue'] = do_createqueue;
-$actions['unknown'] = do_unknown;
+safe_globals();  // !!! FIXME: Remove this!
 
 if (!isset($action))
 {
