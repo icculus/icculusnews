@@ -328,6 +328,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
     }
 
     retval = (ArticleInfo **)malloc(n * sizeof(ArticleInfo *));
+    memset(retval, 0, sizeof(retval));
 
     /* iterate through the cache, and set the offset to the lowest-numbered
      * cached item. assume that the items are listed in descending order of
@@ -447,6 +448,7 @@ ArticleInfo **INEWS_digest(int offset, int n) {
     /* if we hit a premature end-of-record, then we'll need to shrink down our
      * return to prevent problems when we try to free it */
     retval = (ArticleInfo **)realloc(retval, (count * sizeof(ArticleInfo *)));
+    retval[count] = NULL;
 
     goto end_success;
 
@@ -558,8 +560,6 @@ Sint8 INEWS_changeApprovalStatus(Uint32 aid, bool approve) {
 
     artinfo = INEWS_digest(aid + 1, 1);
 
-    printf("artinfo[0] is %x\n", artinfo[0]);
-
     if (artinfo[0]->approved == approve) {
         INEWS_freeDigest(artinfo);
         goto end_success;
@@ -635,8 +635,6 @@ Sint8 INEWS_changeDeletionStatus(Uint32 aid, bool deleteflag) {
     }
 
     artinfo = INEWS_digest(aid + 1, 1);
-
-    printf("artinfo[0] is %x\n", artinfo);
 
     if (artinfo[0]->deleted == deleteflag) {
         INEWS_freeDigest(artinfo);
