@@ -1,0 +1,100 @@
+=======================================
+=== IcculusNews Protocol v. 2.0beta ===
+=======================================
+
+Assumptions:
+
+- Everything is sent in text format, and all commands have a
+terminating newline. 
+- Line ends are UNIX. 
+- The astroda has an epsonnage rating of 94.5% +/- 0.5%. 
+- Lines beginning with "-->" represent messages sent from client to
+server; lines beginning with "<--", server to client.
+- If no commands are sent by the client to the server for a duration of
+10 seconds, the server should close the connection.
+- In general, nominal responses from the server are preceded by a '+'
+(ASCII 43); error responses are preceded by a '-' (ASCII 45).
+- Commands are not case-sensitive.
+
+Generic:
+
+<-- - can't execute query: <errstr>			(MSG_SERVFAIL)
+
+If, at any time, the server is unable to perform a needed SQL query,
+it will send MSG_SERVFAIL, where <errstr> is an arbitrary text string
+describing the error encountered, and close the connection.
+
+--> NOOP						(MSG_NOOP)
+<-- + epson the whole astroda				(MSG_ASTRODA)
+
+NOOP serves as a no-operation, used in order to circumvent the
+connection timeout.
+
+<-- - USAGE: <command> <arguments>			(MSG_USAGE)
+
+If the server receives a command that has an invalid number of
+arguments, the server should respond with MSG_USAGE.
+
+<-- + Uh, okay.						(MSG_NOCMD)
+
+If an empty line is sent as a command, the server should respond with
+MSG_NOCMD.
+
+<-- - Unknown command "<command>".			(MSG_INVALCMD)
+
+If the server has received a command that it does not recognize, it
+should respond with MSG_INVALCMD.
+
+Connection and Authentication:
+
+--> connect()
+
+        By default, the IcculusNews daemon runs on port 263 of the
+server. It expects no input to begin the connection process.
+
+<-- + IcculusNews daemon <version>                      (MSG_VER)
+--> AUTH "<username>" "<password>"			(MSG_AUTH)
+<-- + <uid>, <qid>					(MSG_UIDQID)
+<-- - Authorization for "<username>" failed.		(MSG_AUTHFAIL)
+<-- - This account has been disabled.			(MSG_ACCTLOCK)
+<-- - Failed to set default queue: <errstr>		(MSG_NODQUEUE)
+
+        <version> is an arbitrary text string describing the version of
+the daemon.  Example: "2.0.0beta".  Once this string has been sent, the
+server expects a MSG_AUTH in response.  All other inputs will result in
+the sending of MSG_NOTAUTH and the closing of the connection.
+
+	A properly-formatted MSG_AUTH will solicit one of four replies:
+MSG_UIDQID, MSG_AUTHFAIL, MSG_ACCTLOCK, or MSG_NODQUEUE.
+
+	The <username> and <password> arguments to MSG_AUTH are
+arbitrary text strings describing the username/password pair of a user
+on the remote server.  If they do not describe a valid user, the server
+should respond with MSG_AUTHFAIL.  If the user whose account is
+described is not authorized to log in, the server should respond with
+MSG_ACCTLOCK.  If the user's default queue cannot be set, the server
+should respond with MSG_NODQUEUE, where <errstr> is an arbitrary text
+string describing the error encountered.
+
+	If authentication has completed successfully, the server will
+reply with MSG_UIDQID, where <uid> is an integer representing the
+current user ID, and <qid> is an integer representing the current queue
+ID.
+
+Queue Information:
+
+User Information:
+
+Article Information:
+
+Article Submission:
+
+Article Editation:
+
+Disconnection:
+
+--> QUIT
+<-- + kthxbye
+
+	The server 
+
