@@ -65,10 +65,11 @@ QueueInfo *INEWS_getQueueInfo(int qid) {
 QueueInfo **INEWS_getAllQueuesInfo() {
     QueueInfo **retval;
     IList *iter = qinfoptr;
+    Uint32 i;
 
-    retval = (QueueInfo **)malloc(ilist_length(qinfoptr) * sizeof(QueueInfo *));
+    retval = (QueueInfo **)malloc((ilist_length(qinfoptr) + 1) * sizeof(QueueInfo *));
 
-    for (Uint32 i = 0; i < ilist_length(qinfoptr); i++, iter = ilist_next(iter)) {
+    for (i = 0; i < ilist_length(qinfoptr); i++, iter = ilist_next(iter)) {
 	QueueInfo *temp;
 
 	temp = (QueueInfo *)malloc(sizeof(QueueInfo));
@@ -78,6 +79,7 @@ QueueInfo **INEWS_getAllQueuesInfo() {
 	retval[i] = temp;
     }
 
+    retval[i] = NULL;
     return retval;
 }
 
