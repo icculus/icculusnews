@@ -30,9 +30,10 @@ use warnings;    # don't touch this line, either.
 use DBI;         # or this. I guess. Maybe.
 #use Socket;      # in fact, if it says "use", don't touch it.
 #use IO::Handle;  # blow.
+use HTML::Entities;
 
 # Version of IcculusNews. Change this if you are forking the code.
-my $version = "2.0.1";
+my $version = "2.0.2";
 
 
 # Global rights constants.
@@ -108,14 +109,14 @@ my $invalid_auth_delay = 2;
 
 # This is the maximum size, in bytes, that a command can be. This is
 #  to prevent malicious clients from trying to fill all of system memory.
-my $max_command_size = 256;
+my $max_command_size = 1024;
 
 # This is the maximum size, in bytes, that a news entry can be when submitted
 #  through this daemon. This is to prevent malicious clients from trying to
 #  fill all of system memory. Make this big, though. Stuff in the database
 #  is free game; there is no size limit on what is read back from there, since
 #  we assume that data can be trusted.
-my $max_news_size = 64 * 1024;
+my $max_news_size = 128 * 1024;
 
 # This is the name of your anonymous account.
 my $anon = "anonymous hoser";
@@ -479,14 +480,14 @@ sub generate_rdf {
     $sth->finish();
     return ('failed to read queue attributes', undef, undef) if (not @row);
 
-    my $queuename   = $row[0];
-    my $queuedesc   = $row[1];
-    my $itemarcurl  = $row[2];
-    my $itemviewurl = $row[3];
+    my $queuename   = encode_entities($row[0]);
+    my $queuedesc   = encode_entities($row[1]);
+    my $itemarcurl  = encode_entities($row[2]);
+    my $itemviewurl = $row[3]; # must html encode later!
     my $rdffile     = $row[4];
-    my $siteurl     = $row[5];
-    my $rdfurl      = $row[6];
-    my $rdfimgurl   = $row[7];
+    my $siteurl     = encode_entities($row[5]);
+    my $rdfurl      = encode_entities($row[6]);
+    my $rdfimgurl   = encode_entities($row[7]);
     $max = $row[8] if not defined $max;
 
     $sql = "select t1.author, t1.id, t1.title, t1.postdate, t2.name," .
@@ -517,14 +518,15 @@ sub generate_rdf {
     while (my @row = $sth->fetchrow_array()) {
         my $authorid     = $row[0];
         my $itemid       = $row[1];
-        my $itemtitle    = $row[2];
-        my $itempostdate = $row[3];
-        my $authorname   = ((not defined $row[4]) ? $anon : $row[4]);
+        my $itemtitle    = encode_entities($row[2]);
+        my $itempostdate = encode_entities($row[3]);
+        my $authorname   = encode_entities(((not defined $row[4]) ? $anon : $row[4]));
         my $ipaddr       = long2ip($row[5]);
         my $approved     = $row[6];
         my $deleted      = $row[7];
         my $viewurl = $itemviewurl;
         1 while ($viewurl =~ s/\%id/$itemid/);
+        $viewurl = encode_entities($viewurl);
 
         $digestitems .= "<rdf:li rdf:resource=\"$viewurl\" />\n        ";
 
