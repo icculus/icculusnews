@@ -17,6 +17,7 @@ $actions = array(
     'post' => do_post,
     'newuser' => do_newuser,
     'forgotpw' => do_forgotpw,
+    'changepw' => do_changepw,
     'createqueue' => do_createqueue,
     'unknown' => do_unknown
 );
@@ -183,6 +184,119 @@ function get_connected(&$sock)
 } // get_connected
 
 
+function output_changepw_widgets()
+{
+    echo <<<EOF
+
+    <script language="javascript">
+    <!--
+        function changepwfocus()
+        {
+            document.changepwform.pass1.focus();
+        } // changepwfocus
+    // -->
+    </script>
+
+    <center>
+      <form name="changepwform" method="post"
+            action="${_SERVER['PHP_SELF']}?action=changepw">
+        <table border="1">
+          <tr>
+            <td>New password:</td>
+            <td><input type="password" name="pass1" value=""></td>
+          </tr>
+          <tr>
+            <td>Retype new password:</td>
+            <td><input type="password" name="pass2" value=""></td>
+          </tr>
+          <tr>
+            <td align="center" colspan="2">
+              <table width="100%">
+                <tr>
+                  <td align="left" width="25%">
+                    <font size="-2">
+                      <a href="${_SERVER['PHP_SELF']}?action=newuser">New user</a>
+                    </font>
+                  </td>
+                  <td align="center" width="50%">
+                    <input type="submit" name="form_changepw" value="Change Password">
+                  </td>
+                  <td align="right" width="25%">
+                    <font size="-2">
+                      <a href="${_SERVER['PHP_SELF']}?action=forgotpw">Forgot password</a>
+                    </font>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          <tr>
+        </table>
+      </form>
+    </center>
+
+EOF;
+} // output_changepw_widgets
+
+
+function do_changepw()
+{
+    global $daemon_host, $daemon_port;
+
+    if (!isset($_SERVER['HTTPS']))
+    {
+         $href = "https://${_SERVER['SERVER_NAME']}${_SERVER['REQUEST_URI']}";
+         print "<p align=\"center\">You need a secure connection.</p>\n";
+         print "<p align=\"center\">Try <a href=\"$href\">here</a>.</p>\n";
+         return;
+    } // if
+
+    if (!is_logged_in($u, $p, $q))
+    {
+        do_login('changepw');
+        return;
+    } // if
+
+    if ( (!isset($_REQUEST['pass1'])) || (!isset($_REQUEST['pass2'])) )
+        output_changepw_widgets();
+    else
+    {
+        $pass1 = trim($_REQUEST['pass1']);
+        $pass2 = trim($_REQUEST['pass2']);
+        $err = false;
+        if ( ($pass1 == '') || ($pass2 == '') )
+            $err = "Please enter all fields.";
+        else if ($pass1 != $pass2)
+            $err = "Passwords do not match.";
+        else
+        {
+            $err = news_login($sock, $daemon_host, $daemon_port, $u, $p);
+            if (!$err)
+            {
+                $err = news_changepassword($sock, $pass1);
+                news_logout($sock);
+            } // if
+        } // else
+
+        if (!$err)
+        {
+            echo "<center>\n";
+            echo "<font color='#00FF00'>Your password is changed.</font><br>\n";
+            echo "Now we're forcing a logout so you can test the new password...<br>\n";
+            echo "</center><p>\n";
+            do_logout();
+        } // if
+
+        else
+        {
+            echo "<center>\n";
+            echo "<font color='#FF0000'>ERROR: $err</font><br>\n";
+            echo "</center><p>\n";
+            output_changepw_widgets();
+        } // else
+    } // else
+} // do_changepw
+
+
 function output_queue_rows($sock, $showall = 0)
 {
     // create some local variables.
@@ -347,6 +461,8 @@ echo <<< EOF
           <td align="right">
             [
             <a href="${_SERVER['PHP_SELF']}?action=view&showall=$showallflip">$showalltext</a>
+            |
+            <a href="${_SERVER['PHP_SELF']}?action=changepw">Change password</a>
             |
             <a href="${_SERVER['PHP_SELF']}?action=logout">Log out</a>
             ]
@@ -1256,6 +1372,10 @@ function do_forgotpw()
             that it's really you. An email will be sent to that address with
             a randomly-generated password so you can log in again.
             <p>
+            Once you are logged in, you can
+            <a href="${_SERVER['PHP_SELF']}?action=changepw">change your password</a>
+            to whatever you like.        
+            <p>
             If you are no longer have access to that email address or you
             can't remember what address you used, you'll have to
             <a href="mailto:$newsmaster_email">email $newsmaster_name</a> and
@@ -1508,6 +1628,8 @@ function body_attributes($action)
         print('onLoad="newuserfocus();"');
     else if (strcmp($action, 'forgotpw') == 0)
         print('onLoad="forgotfocus();"');
+    else if (strcmp($action, 'changepw') == 0)
+        print('onLoad="changepwfocus();"');
 } // body_attributes
 
 // mainline/setup.
