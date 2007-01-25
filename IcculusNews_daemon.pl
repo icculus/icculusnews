@@ -518,7 +518,8 @@ sub generate_rdf {
     while (my @row = $sth->fetchrow_array()) {
         my $authorid     = $row[0];
         my $itemid       = $row[1];
-        my $itemtitle    = encode_entities($row[2]);
+#        my $itemtitle    = encode_entities($row[2]);
+        my $itemtitle    = $row[2];
         my $itempostdate = encode_entities($row[3]);
         my $authorname   = encode_entities(((not defined $row[4]) ? $anon : $row[4]));
         my $ipaddr       = long2ip($row[5]);
