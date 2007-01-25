@@ -148,7 +148,7 @@ $sql = "create table $dbtable_items (" .
        " ip int unsigned not null," .
        " deleted tinyint unsigned default 0," .
        " approved tinyint unsigned default 0," .
-       " title varchar(64) not null," .
+       " title varchar(128) not null," .
        " text text not null," .
        " author mediumint unsigned default 0," .
        " postdate datetime not null," .
