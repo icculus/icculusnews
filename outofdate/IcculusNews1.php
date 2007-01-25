@@ -31,7 +31,7 @@ Type:
              ip int not null,
              approved tinyint default 0,
              deleted tinyint default 0,
-             title varchar(64) not null,
+             title varchar(128) not null,
              text text not null,
              author mediumint default 0,
              postdate datetime not null,
