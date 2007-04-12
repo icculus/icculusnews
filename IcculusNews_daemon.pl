@@ -491,7 +491,7 @@ sub generate_rdf {
     $max = $row[8] if not defined $max;
 
     $sql = "select t1.author, t1.id, t1.title, t1.postdate, t2.name," .
-           " t1.ip, t1.approved, t1.deleted" .
+           " t1.ip, t1.approved, t1.deleted, t1.text" .
            " from $dbtable_items as t1" .
            " left outer join $dbtable_users as t2" .
            " on t1.author=t2.id" .
@@ -525,6 +525,7 @@ sub generate_rdf {
         my $ipaddr       = long2ip($row[5]);
         my $approved     = $row[6];
         my $deleted      = $row[7];
+        my $text         = encode_entities($row[8]);
         my $viewurl = $itemviewurl;
         1 while ($viewurl =~ s/\%id/$itemid/);
         $viewurl = encode_entities($viewurl);
@@ -542,6 +543,7 @@ sub generate_rdf {
         $rdfitems .= "    <ipaddr>$ipaddr</ipaddr>\n";
         $rdfitems .= "    <approved>$approved</approved>\n";
         $rdfitems .= "    <deleted>$deleted</deleted>\n";
+        $rdfitems .= "    <description>\n$text\n    </description>\n";
         $rdfitems .= "  </item>";
     }
     $sth->finish();
