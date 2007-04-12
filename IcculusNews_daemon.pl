@@ -461,7 +461,6 @@ sub update_queue_rights {
 
 sub pubdate {
     my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = @_;
-print("year: $year\n");
     return POSIX::strftime("%a, %e %b %Y %H:%M:%S %z", $sec, $min, $hour,
                            $mday, $mon, $year, $wday, $yday, $isdst);
 }
@@ -475,7 +474,6 @@ sub sqlpubdate {
         my $hour = $4 - 0;
         my $min = $5 - 0;
         my $sec = $6 - 0;
-print("sql year: $year\n");
         return pubdate($sec, $min, $hour, $mday, $mon, $year, 0, 0, 0);
     }
     return '???';
