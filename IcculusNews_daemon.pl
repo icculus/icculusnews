@@ -33,7 +33,7 @@ use DBI;         # or this. I guess. Maybe.
 use HTML::Entities;
 
 # Version of IcculusNews. Change this if you are forking the code.
-my $version = "2.0.2";
+my $version = "2.0.3";
 
 
 # Global rights constants.
@@ -459,6 +459,27 @@ sub update_queue_rights {
     }
 }
 
+sub pubdate {
+    my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = @_;
+print("year: $year\n");
+    return POSIX::strftime("%a, %e %b %Y %H:%M:%S %z", $sec, $min, $hour,
+                           $mday, $mon, $year, $wday, $yday, $isdst);
+}
+
+sub sqlpubdate {
+    my $d = shift;
+    if ($d =~ /\A(\d+)\-(\d+)\-(\d+)\s+(\d+)\:(\d+)\:(\d+)\Z/) {
+        my $year = $1 - 1900;
+        my $mon = $2 - 1;
+        my $mday = $3 - 0;
+        my $hour = $4 - 0;
+        my $min = $5 - 0;
+        my $sec = $6 - 0;
+print("sql year: $year\n");
+        return pubdate($sec, $min, $hour, $mday, $mon, $year, 0, 0, 0);
+    }
+    return '???';
+}
 
 sub generate_rdf {
     my $qid = shift;
@@ -520,6 +541,7 @@ sub generate_rdf {
         my $itemid       = $row[1];
 #        my $itemtitle    = encode_entities($row[2]);
         my $itemtitle    = $row[2];
+        my $itempubdate = encode_entities(sqlpubdate($row[3]));
         my $itempostdate = encode_entities($row[3]);
         my $authorname   = encode_entities(((not defined $row[4]) ? $anon : $row[4]));
         my $ipaddr       = long2ip($row[5]);
@@ -540,6 +562,7 @@ sub generate_rdf {
         $rdfitems .= "    <authorid>$authorid</authorid>\n";
         $rdfitems .= "    <itemid>$itemid</itemid>\n";
         $rdfitems .= "    <postdate>$itempostdate</postdate>\n";
+        $rdfitems .= "    <pubDate>$itempubdate</pubDate>\n";
         $rdfitems .= "    <ipaddr>$ipaddr</ipaddr>\n";
         $rdfitems .= "    <approved>$approved</approved>\n";
         $rdfitems .= "    <deleted>$deleted</deleted>\n";
@@ -548,6 +571,7 @@ sub generate_rdf {
     }
     $sth->finish();
 
+    my $pubdate = pubdate(localtime());
     my $rdf = <<__EOF__;
 <?xml version="1.0" encoding="utf-8"?>
 
@@ -559,6 +583,7 @@ sub generate_rdf {
     <link>$siteurl</link>
     <archives>$itemarcurl</archives>
     <description>$queuedesc</description>
+    <pubDate>$pubdate</pubDate>
     $channelimg
     <items>
       <rdf:Seq>
