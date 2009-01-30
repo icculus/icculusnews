@@ -935,7 +935,7 @@ $commands{'QUEUEINFO'} = sub {
               " q.created, q.owner, u.name, q.flags, r.rights" .
               " from $dbtable_queues as q, $dbtable_users as u" .
               " left outer join $dbtable_queue_rights as r" .
-              " on r.qid=q.id and r.uid=$auth_uid" .
+              " on r.qid=$id and r.uid=$auth_uid" .
               " where q.id=$id and q.owner=u.id";
     my $sth = $link->prepare($sql);
     $sth->execute() or report_fatal("can't execute query: $sth->errstr");
