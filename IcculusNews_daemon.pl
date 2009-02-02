@@ -938,7 +938,7 @@ $commands{'QUEUEINFO'} = sub {
               " on r.qid=$id and r.uid=$auth_uid" .
               " where q.id=$id and q.owner=u.id";
     my $sth = $link->prepare($sql);
-    $sth->execute() or report_fatal("can't execute query: $sth->errstr");
+    $sth->execute() or report_fatal("can't execute query ($sql): $sth->errstr");
     my @row = $sth->fetchrow_array();
     $sth->finish();
 

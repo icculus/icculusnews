@@ -1,5 +1,21 @@
 <?php
 
+static $GDebugSocket = false;
+
+function _fputs($sock, $str)
+{
+    global $GDebugSocket;
+    if ($GDebugSocket) print("<pre>\nfputs:\n$str\n</pre>");
+    return fputs($sock, $str);
+}
+function _fgets($sock, $len)
+{
+    global $GDebugSocket;
+    $str = fgets($sock, $len);
+    if ($GDebugSocket) print("<pre>\nfgets:\n$str\n</pre>");
+    return $str;
+}
+
 function news_login(&$sock, $host, $port = 263, $uname = NULL,
                     $pass = NULL, $queue = NULL)
 {
@@ -10,7 +26,7 @@ function news_login(&$sock, $host, $port = 263, $uname = NULL,
         return("failed to connect to daemon at all");
     } // if
 
-    $in = fgets($sock, 4096);   // get welcome message.
+    $in = _fgets($sock, 4096);   // get welcome message.
     if ($in{0} != '+')
     {
         fclose($sock);
@@ -19,8 +35,8 @@ function news_login(&$sock, $host, $port = 263, $uname = NULL,
     } // if
 
     $authstr = 'AUTH ' . (isset($uname) ? "\"$uname\" \"$pass\"" : '-');
-    fputs($sock, "$authstr\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "$authstr\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
     {
         news_logout($sock);
@@ -45,8 +61,8 @@ function news_logout(&$sock)
 {
     if (isset($sock))
     {
-        fputs($sock, "QUIT\n");
-        fgets($sock, 4096);
+        _fputs($sock, "QUIT\n");
+        _fgets($sock, 4096);
         fclose($sock);
         $sock = NULL;
     } // if
@@ -66,8 +82,8 @@ function news_enum_queues($sock, &$queuearray)
     if (!isset($sock))
         return('bogus socket');
 
-    fputs($sock, "ENUM queues\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "ENUM queues\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -75,11 +91,11 @@ function news_enum_queues($sock, &$queuearray)
     $retval = array();
     while (true)
     {
-        $x = rtrim(fgets($sock, 4096));
+        $x = rtrim(_fgets($sock, 4096));
         if ($x == '.')
             break;  // done reading.
 
-        $retval[$x] = rtrim(fgets($sock, 4096));
+        $retval[$x] = rtrim(_fgets($sock, 4096));
         if (feof($sock))
             return("Unexpected EOF from news daemon");
     } // while
@@ -96,8 +112,8 @@ function news_change_queue($sock, $queue)
     else if (!isset($queue))
         return('bogus queue');
 
-    fputs($sock, "QUEUE $queue\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "QUEUE $queue\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -112,8 +128,8 @@ function news_get_userinfo($sock, &$uid, &$qid)
 
     $uid = $qid = NULL;
 
-    fputs($sock, "USERINFO\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "USERINFO\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -153,27 +169,27 @@ function news_digest($sock, &$digestarray, $startpoint = false, $maxitems = 5)
     if ($startpoint === false)
         $startpoint = '-';
 
-    fputs($sock, "DIGEST $startpoint $maxitems\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "DIGEST $startpoint $maxitems\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
     $retval = array();
     while (true)
     {
-        $x = rtrim(fgets($sock, 4096));
+        $x = rtrim(_fgets($sock, 4096));
         if ($x == '.')
             break;  // done reading.
 
         $item = array();
         $item['id'] = $x;
-        $item['title'] = rtrim(fgets($sock, 4096));
-        $item['postdate'] = rtrim(fgets($sock, 4096));
-        $item['authid'] = rtrim(fgets($sock, 4096));
-        $item['author'] = rtrim(fgets($sock, 4096));
-        $item['ipaddr'] = rtrim(fgets($sock, 4096));
-        $item['approved'] = rtrim(fgets($sock, 4096));
-        $item['deleted'] = rtrim(fgets($sock, 4096));
+        $item['title'] = rtrim(_fgets($sock, 4096));
+        $item['postdate'] = rtrim(_fgets($sock, 4096));
+        $item['authid'] = rtrim(_fgets($sock, 4096));
+        $item['author'] = rtrim(_fgets($sock, 4096));
+        $item['ipaddr'] = rtrim(_fgets($sock, 4096));
+        $item['approved'] = rtrim(_fgets($sock, 4096));
+        $item['deleted'] = rtrim(_fgets($sock, 4096));
         if (feof($sock))
             return("Unexpected EOF from news daemon");
         $retval[] = $item;
@@ -199,20 +215,20 @@ function news_digest($sock, &$digestarray, $startpoint = false, $maxitems = 5)
 //
 function news_get($sock, $id, &$item)
 {
-    fputs($sock, "GET $id\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "GET $id\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
     $retval = array();
     $retval['id'] = $id;
-    $retval['title'] = rtrim(fgets($sock, 4096));
-    $retval['postdate'] = rtrim(fgets($sock, 4096));
-    $retval['authid'] = rtrim(fgets($sock, 4096));
-    $retval['author'] = rtrim(fgets($sock, 4096));
-    $retval['ipaddr'] = rtrim(fgets($sock, 4096));
-    $retval['approved'] = rtrim(fgets($sock, 4096));
-    $retval['deleted'] = rtrim(fgets($sock, 4096));
+    $retval['title'] = rtrim(_fgets($sock, 4096));
+    $retval['postdate'] = rtrim(_fgets($sock, 4096));
+    $retval['authid'] = rtrim(_fgets($sock, 4096));
+    $retval['author'] = rtrim(_fgets($sock, 4096));
+    $retval['ipaddr'] = rtrim(_fgets($sock, 4096));
+    $retval['approved'] = rtrim(_fgets($sock, 4096));
+    $retval['deleted'] = rtrim(_fgets($sock, 4096));
     $retval['text'] = '';
 
     while (true)
@@ -221,7 +237,7 @@ function news_get($sock, $id, &$item)
             return("Unexpected EOF from news daemon");
 
         // !!! FIXME: line can overflow 4096.
-        $x = rtrim(fgets($sock, 4096));
+        $x = rtrim(_fgets($sock, 4096));
         if ($x == '.')
             break;  // we're done.
 
@@ -251,21 +267,21 @@ function news_get($sock, $id, &$item)
 //
 function news_queueinfo($sock, $id, &$info)
 {
-    fputs($sock, "QUEUEINFO $id\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "QUEUEINFO $id\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
     $retval = array();
-    $retval['name'] = rtrim(fgets($sock, 4096));
-    $retval['desc'] = rtrim(fgets($sock, 4096));
-    $retval['itemarchiveurl'] = rtrim(fgets($sock, 4096));
-    $retval['itemviewurl'] = rtrim(fgets($sock, 4096));
-    $retval['url'] = rtrim(fgets($sock, 4096));
-    $retval['rdfurl'] = rtrim(fgets($sock, 4096));
-    $retval['created'] = rtrim(fgets($sock, 4096));
-    $retval['ownerid'] = rtrim(fgets($sock, 4096));
-    $retval['owner'] = rtrim(fgets($sock, 4096));
+    $retval['name'] = rtrim(_fgets($sock, 4096));
+    $retval['desc'] = rtrim(_fgets($sock, 4096));
+    $retval['itemarchiveurl'] = rtrim(_fgets($sock, 4096));
+    $retval['itemviewurl'] = rtrim(_fgets($sock, 4096));
+    $retval['url'] = rtrim(_fgets($sock, 4096));
+    $retval['rdfurl'] = rtrim(_fgets($sock, 4096));
+    $retval['created'] = rtrim(_fgets($sock, 4096));
+    $retval['ownerid'] = rtrim(_fgets($sock, 4096));
+    $retval['owner'] = rtrim(_fgets($sock, 4096));
 
     $info = $retval;
     return(NULL);  // no error.
@@ -274,13 +290,13 @@ function news_queueinfo($sock, $id, &$info)
 
 function news_post($sock, $title, $text)
 {
-    fputs($sock, "POST $title\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "POST $title\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
-    fputs($sock, "$text\n.\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "$text\n.\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -290,13 +306,13 @@ function news_post($sock, $title, $text)
 
 function news_edit($sock, $id, $title, $text)
 {
-    fputs($sock, "EDIT $id $title\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "EDIT $id $title\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
-    fputs($sock, "$text\n.\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "$text\n.\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -306,8 +322,8 @@ function news_edit($sock, $id, $title, $text)
 
 function news_approve($sock, $id)
 {
-    fputs($sock, "APPROVE $id\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "APPROVE $id\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -317,8 +333,8 @@ function news_approve($sock, $id)
 
 function news_unapprove($sock, $id)
 {
-    fputs($sock, "UNAPPROVE $id\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "UNAPPROVE $id\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -328,8 +344,8 @@ function news_unapprove($sock, $id)
 
 function news_delete($sock, $id)
 {
-    fputs($sock, "DELETE $id\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "DELETE $id\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -339,8 +355,8 @@ function news_delete($sock, $id)
 
 function news_undelete($sock, $id)
 {
-    fputs($sock, "UNDELETE $id\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "UNDELETE $id\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -350,8 +366,8 @@ function news_undelete($sock, $id)
 
 function news_purge($sock, $id)
 {
-    fputs($sock, "PURGE $id\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "PURGE $id\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -361,8 +377,8 @@ function news_purge($sock, $id)
 
 function news_purgeall($sock)
 {
-    fputs($sock, "PURGEALL\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "PURGEALL\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -375,8 +391,8 @@ function news_purgeall($sock)
 //  timeout is 15 seconds).
 function news_noop($sock)
 {
-    fputs($sock, "NOOP\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "NOOP\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -413,7 +429,7 @@ function news_parse_rdf($filename, &$digestarray, $max_items = 5)
 
     while ($count < $max_items)
     {
-        while (strstr(fgets($in, 4096), "<item rdf") == false)
+        while (strstr(_fgets($in, 4096), "<item rdf") == false)
         {
             if (feof($in))
                 break;
@@ -423,39 +439,39 @@ function news_parse_rdf($filename, &$digestarray, $max_items = 5)
             break;
 
         $item = array();
-        $x = ltrim(rtrim(fgets($in, 4096)));
+        $x = ltrim(rtrim(_fgets($in, 4096)));
         $x = str_replace('<title>', '', $x);
         $x = str_replace('</title>', '', $x);
         $item['title'] = $x;
-        $x = ltrim(rtrim(fgets($in, 4096)));
+        $x = ltrim(rtrim(_fgets($in, 4096)));
         $x = str_replace('<link>', '', $x);
         $x = str_replace('</link>', '', $x);
         $item['link'] = $x;
-        $x = ltrim(rtrim(fgets($in, 4096)));
+        $x = ltrim(rtrim(_fgets($in, 4096)));
         $x = str_replace('<author>', '', $x);
         $x = str_replace('</author>', '', $x);
         $item['author'] = $x;
-        $x = ltrim(rtrim(fgets($in, 4096)));
+        $x = ltrim(rtrim(_fgets($in, 4096)));
         $x = str_replace('<authorid>', '', $x);
         $x = str_replace('</authorid>', '', $x);
         $item['authid'] = $x;
-        $x = ltrim(rtrim(fgets($in, 4096)));
+        $x = ltrim(rtrim(_fgets($in, 4096)));
         $x = str_replace('<itemid>', '', $x);
         $x = str_replace('</itemid>', '', $x);
         $item['id'] = $x;
-        $x = ltrim(rtrim(fgets($in, 4096)));
+        $x = ltrim(rtrim(_fgets($in, 4096)));
         $x = str_replace('<postdate>', '', $x);
         $x = str_replace('</postdate>', '', $x);
         $item['postdate'] = $x;
-        $x = ltrim(rtrim(fgets($in, 4096)));
+        $x = ltrim(rtrim(_fgets($in, 4096)));
         $x = str_replace('<ipaddr>', '', $x);
         $x = str_replace('</ipaddr>', '', $x);
         $item['ipaddr'] = $x;
-        $x = ltrim(rtrim(fgets($in, 4096)));
+        $x = ltrim(rtrim(_fgets($in, 4096)));
         $x = str_replace('<approved>', '', $x);
         $x = str_replace('</approved>', '', $x);
         $item['approved'] = $x;
-        $x = ltrim(rtrim(fgets($in, 4096)));
+        $x = ltrim(rtrim(_fgets($in, 4096)));
         $x = str_replace('<deleted>', '', $x);
         $x = str_replace('</deleted>', '', $x);
         $item['deleted'] = $x;
@@ -472,8 +488,8 @@ function news_parse_rdf($filename, &$digestarray, $max_items = 5)
 
 function news_createuser($sock, $uname, $email, $pword)
 {
-    fputs($sock, "CREATEUSER \"$uname\" \"$email\" \"$pword\"\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "CREATEUSER \"$uname\" \"$email\" \"$pword\"\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -483,8 +499,8 @@ function news_createuser($sock, $uname, $email, $pword)
 
 function news_changepassword($sock, $pword)
 {
-    fputs($sock, "CHANGEPASSWORD $pword\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "CHANGEPASSWORD $pword\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -494,8 +510,8 @@ function news_changepassword($sock, $pword)
 
 function news_forgotpassword($sock, $user, $email)
 {
-    fputs($sock, "FORGOTPASSWORD \"$user\" \"$email\"\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "FORGOTPASSWORD \"$user\" \"$email\"\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
@@ -505,8 +521,8 @@ function news_forgotpassword($sock, $user, $email)
 
 function news_moveitem($sock, $itemid, $newqueueid)
 {
-    fputs($sock, "MOVEITEM $itemid $newqueueid\n");
-    $in = fgets($sock, 4096);
+    _fputs($sock, "MOVEITEM $itemid $newqueueid\n");
+    $in = _fgets($sock, 4096);
     if ($in{0} != '+')
         return(substr($in, 2));
 
