@@ -33,7 +33,7 @@ use DBI;         # or this. I guess. Maybe.
 use HTML::Entities;
 
 # Version of IcculusNews. Change this if you are forking the code.
-my $version = "2.0.3";
+my $version = "2.0.4";
 
 
 # Global rights constants.
@@ -1627,13 +1627,18 @@ sub syslog_and_die {
 
 sub go_to_background {
     use POSIX 'setsid';
-    chdir('/') or syslog_and_die("Can't chdir to '/': $!");
     open STDIN,'/dev/null' or syslog_and_die("Can't read '/dev/null': $!");
     open STDOUT,'>/dev/null' or syslog_and_die("Can't write '/dev/null': $!");
-    defined(my $pid=fork()) or syslog_and_die("Can't fork: $!");
+    # fork once, so launching process regains control.
+    defined(my $pid=fork) or syslog_and_die("Can't fork: $!");
     exit if $pid;
+    # become session group leader, so we have no controlling terminal.
     setsid or syslog_and_die("Can't start new session: $!");
+    # fork again; group leader (and chance of controlling terminal) vanishes.
+    defined($pid=fork) or syslog_and_die("Can't fork: $!");
+    exit if $pid;
     open STDERR,'>&STDOUT' or syslog_and_die("Can't duplicate stdout: $!");
+    chdir('/') or syslog_and_die("Can't chdir to '/': $!");
     do_log(syslogDaemon, "Daemon process is now detached");
 }
 
