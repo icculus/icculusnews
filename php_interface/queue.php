@@ -199,7 +199,7 @@ function output_changepw_widgets()
 
     <center>
       <form name="changepwform" method="post"
-            action="${_SERVER['PHP_SELF']}?action=changepw">
+            action="?action=changepw">
         <table border="1">
           <tr>
             <td>New password:</td>
@@ -215,7 +215,7 @@ function output_changepw_widgets()
                 <tr>
                   <td align="left" width="25%">
                     <font size="-2">
-                      <a href="${_SERVER['PHP_SELF']}?action=newuser">New user</a>
+                      <a href="?action=newuser">New user</a>
                     </font>
                   </td>
                   <td align="center" width="50%">
@@ -223,7 +223,7 @@ function output_changepw_widgets()
                   </td>
                   <td align="right" width="25%">
                     <font size="-2">
-                      <a href="${_SERVER['PHP_SELF']}?action=forgotpw">Forgot password</a>
+                      <a href="?action=forgotpw">Forgot password</a>
                     </font>
                   </td>
                 </tr>
@@ -361,7 +361,7 @@ function output_queue_rows($sock, $showall = 0)
         print("<td align=\"center\"> $tags {$item['postdate']} $endtags </td>\n");
 
         print("<td align=\"center\"> $tags");
-        print(" <a href=\"{$_SERVER['PHP_SELF']}?action=post&editid={$item['id']}\">");
+        print(" <a href=\"?action=post&editid={$item['id']}\">");
         print("{$item['title']} $endtags </a> </td>\n");
 
         print("<td align=\"center\"> $tags {$item['author']} $endtags </td>\n");
@@ -411,7 +411,7 @@ function output_news_queue_widgets($showall = 0)
 
     echo <<< EOF
 
-      <form method="post" action="${_SERVER['PHP_SELF']}?action=view">
+      <form method="post" action="?action=view">
         <input type="hidden" name="showall" value="$showall">
 
 EOF;
@@ -460,11 +460,11 @@ echo <<< EOF
           </td>
           <td align="right">
             [
-            <a href="${_SERVER['PHP_SELF']}?action=view&showall=$showallflip">$showalltext</a>
+            <a href="?action=view&showall=$showallflip">$showalltext</a>
             |
-            <a href="${_SERVER['PHP_SELF']}?action=changepw">Change password</a>
+            <a href="?action=changepw">Change password</a>
             |
-            <a href="${_SERVER['PHP_SELF']}?action=logout">Log out</a>
+            <a href="?action=logout">Log out</a>
             ]
           </td>
         </tr>
@@ -550,7 +550,7 @@ echo <<< EOF
 
       <table width="75%">
         <tr>
-          <td align="center"><a href="${_SERVER['PHP_SELF']}?action=post">Add new items.</a></td>
+          <td align="center"><a href="?action=post">Add new items.</a></td>
           <td align="center"><a href="{$qinfo['itemarchiveurl']}">View news archive.</a></td>
           <td align="center"><a href="{$qinfo['url']}">View front page.</a></td>
         </tr>
@@ -750,7 +750,7 @@ function output_login_widgets($next_action = 'view')
     <center>
       <form name="loginform" method="post"
             onsubmit="return check_login_fields();"
-            action="${_SERVER['PHP_SELF']}?action=login">
+            action="?action=login">
         <input type="hidden" name="form_next" value="$next_action">
         <table border="1">
           <tr>
@@ -767,7 +767,7 @@ function output_login_widgets($next_action = 'view')
                 <tr>
                   <td align="left" width="25%">
                     <font size="-2">
-                      <a href="${_SERVER['PHP_SELF']}?action=newuser">New user</a>
+                      <a href="?action=newuser">New user</a>
                     </font>
                   </td>
                   <td align="center" width="50%">
@@ -775,7 +775,7 @@ function output_login_widgets($next_action = 'view')
                   </td>
                   <td align="right" width="25%">
                     <font size="-2">
-                      <a href="${_SERVER['PHP_SELF']}?action=forgotpw">Forgot password</a>
+                      <a href="?action=forgotpw">Forgot password</a>
                     </font>
                   </td>
                 </tr>
@@ -824,7 +824,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
 
     $newlogin_form = (isset($item['id'])) ?
         '' :
-        "<a href=\"${_SERVER['PHP_SELF']}?action=login&form_next=post\"><font size=\"-2\">(Log in as someone else)</font></a>";
+        "<a href=\"?action=login&form_next=post\"><font size=\"-2\">(Log in as someone else)</font></a>";
 
     $queue_form = '';
     if (count($queues) == 1)
@@ -889,7 +889,7 @@ function output_news_edit_widgets($item, $queues, $chosen_queue, $allow_submit)
 
     echo <<< EOF
 
-    <form method="post" action="${_SERVER['PHP_SELF']}?action=post$idarg">
+    <form method="post" action="?action=post$idarg">
       <input type="hidden" name="form_fromuser" value="{$item['author']}">
       <input type="hidden" name="form_postdate" value="{$item['postdate']}">
       $beenpreviewedwidget
@@ -1138,7 +1138,7 @@ function do_logout()
 
     <center>
       <p>You have been logged out.</p>
-      <p>You can log back in <a href="${_SERVER['PHP_SELF']}?action=login">here</a>.
+      <p>You can log back in <a href="?action=login">here</a>.
     </center>
 
 EOF;
@@ -1298,7 +1298,7 @@ function do_forgotpw()
             print("<center>\n");
             print("<font color=\"#0000FF\">Password reset!</font><br>\n");
             print("A new password has been emailed to you.<br>\n");
-            print("You can go <a href=\"${_SERVER['PHP_SELF']}?action=login\">here</a>");
+            print("You can go <a href=\"?action=login\">here</a>");
             print(" to login with the new password.\n</center>\n");
         } // if
         else
@@ -1373,7 +1373,7 @@ function do_forgotpw()
             a randomly-generated password so you can log in again.
             <p>
             Once you are logged in, you can
-            <a href="${_SERVER['PHP_SELF']}?action=changepw">change your password</a>
+            <a href="?action=changepw">change your password</a>
             to whatever you like.        
             <p>
             If you are no longer have access to that email address or you
@@ -1386,7 +1386,7 @@ function do_forgotpw()
             <form name="forgotform"
                   method="post"
                   onsubmit="return check_forgot_fields();"
-                  action="${_SERVER['PHP_SELF']}?action=forgotpw">
+                  action="?action=forgotpw">
               <table border="0">
                 <tr>
                   <td align="right">Username:</td>
@@ -1468,7 +1468,7 @@ function do_newuser()
             $output_widgets = false;
             print("<center>\n");
             print("<font color=\"#0000FF\">Account created!</font><br>\n");
-            print("You can go <a href=\"${_SERVER['PHP_SELF']}?action=login\">here</a>");
+            print("You can go <a href=\"?action=login\">here</a>");
             print(" to login and try your new account out.\n</center>\n");
         } // if
         else
@@ -1564,7 +1564,7 @@ function do_newuser()
             <form name="newuserform"
                   method="post"
                   onsubmit="return check_newuser_fields();"
-                  action="${_SERVER['PHP_SELF']}?action=newuser">
+                  action="?action=newuser">
               <table border="0">
                 <tr>
                   <td align="right">Username:</td>
