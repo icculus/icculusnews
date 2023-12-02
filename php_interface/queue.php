@@ -10,17 +10,18 @@ $daemon_host = 'localhost';
 $daemon_port = 263;
 
 $actions = array(
-    'login' => do_login,
-    'logout' => do_logout,
-    'whoami' => do_whoami,
-    'view' => do_view,
-    'post' => do_post,
-    'newuser' => do_newuser,
-    'forgotpw' => do_forgotpw,
-    'changepw' => do_changepw,
-    'createqueue' => do_createqueue,
-    'unknown' => do_unknown
+    'login' => function($next_action=NULL) { return do_login($next_action); },
+    'logout' => function($next_action=NULL) { return do_logout($next_action); },
+    'whoami' => function($next_action=NULL) { return do_whoami($next_action); },
+    'view' => function($next_action=NULL) { return do_view($next_action); },
+    'post' => function($next_action=NULL) { return do_post($next_action); },
+    'newuser' => function($next_action=NULL) { return do_newuser($next_action); },
+    'forgotpw' => function($next_action=NULL) { return do_forgotpw($next_action); },
+    'changepw' => function($next_action=NULL) { return do_changepw($next_action); },
+    'createqueue' => function($next_action=NULL) { return do_createqueue($next_action); },
+    'unknown' => function($next_action=NULL) { return do_unknown($next_action); }
 );
+
 
 // register variable names as "safe" globals...i.e. - we don't care WHERE 
 //  they are set, even if a hacker changes them with GETs or POSTs...
